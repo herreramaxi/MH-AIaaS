@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5C7CB6F1
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AIaaS.UnitTests", "tests\AIaaS.UnitTests\AIaaS.UnitTests.csproj", "{8C24A8ED-701F-49E4-A144-C1BB362752AD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppTest", "ConsoleAppTest\ConsoleAppTest.csproj", "{F5C34635-B91D-420B-A946-99B7D2FA3342}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppTest", "tests\ConsoleAppTest\ConsoleAppTest.csproj", "{F5C34635-B91D-420B-A946-99B7D2FA3342}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -20,7 +20,7 @@ namespace ConsoleAppTest
             MLContext mlContext = new MLContext(seed: 0);
 
             // Create, Train, Evaluate and Save a model
-            //BuildTrainEvaluateAndSaveModel(mlContext);
+            BuildTrainEvaluateAndSaveModel(mlContext);
 
             // Make a single test prediction loding the model from .ZIP file
             TestSinglePrediction(mlContext);
