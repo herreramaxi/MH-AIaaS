@@ -23,6 +23,8 @@ namespace Regression_TaxiFarePrediction
         //https://github.com/jwood803/MLNetExamples/blob/master/MLNetExamples/NullValues/ReplacedValues.cs
         static void Main(string[] args) //If args[0] == "svg" a vector-based chart will be created instead a .png chart
         {
+            //var gen = new TaxiFarePricePrediction();
+            //gen.Run();
             //var gen = new HousingPricePrediction();
             var gen = new SalesPrediction();
             gen.Run();

@@ -7,10 +7,10 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
-COPY ["AIaaS.WebAPI/AIaaS.WebAPI.csproj", "AIaaS.WebAPI/"]
-RUN dotnet restore "AIaaS.WebAPI/AIaaS.WebAPI.csproj"
+COPY ["src/AIaaS.WebAPI/AIaaS.WebAPI.csproj", "src/AIaaS.WebAPI/"]
+RUN dotnet restore "src/AIaaS.WebAPI/AIaaS.WebAPI.csproj"
 COPY . .
-WORKDIR "/src/AIaaS.WebAPI"
+WORKDIR "/src/src/AIaaS.WebAPI"
 RUN dotnet build "AIaaS.WebAPI.csproj" -c Release -o /app/build
 
 FROM build AS publish

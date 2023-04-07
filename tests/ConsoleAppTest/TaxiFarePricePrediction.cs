@@ -34,7 +34,12 @@ namespace ConsoleAppTest
             MLContext mlContext = new MLContext(seed: 0);
 
             // Create, Train, Evaluate and Save a model
+
+            var sw = new Stopwatch();
+            sw.Start();
             BuildTrainEvaluateAndSaveModel(mlContext);
+            sw.Stop();
+            Console.WriteLine($"BuildTrainEvaluateAndSaveModel: {sw.ElapsedMilliseconds}ms");
 
             // Make a single test prediction loding the model from .ZIP file
             TestSinglePrediction(mlContext);
