@@ -64,7 +64,7 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 var requiredVars =
     new string[] {
-          "PORT",
+          "PORT_WEBAPI",
           "CLIENT_ORIGIN_URL",
           "AUTH0_DOMAIN",
           "AUTH0_AUDIENCE",
@@ -80,16 +80,22 @@ foreach (var key in requiredVars)
     }
 }
 
-app.Urls.Add($"http://+:{app.Configuration.GetValue<string>("PORT")}");
+app.MapGet("/test", () =>
+{
+    return "hello world";
+});
+
+
+app.Urls.Add($"http://+:{app.Configuration.GetValue<string>("PORT_WEBAPI")}");
 
 app.UseErrorHandler();
-app.UseSecureHeaders();
+//app.UseSecureHeaders();
 app.MapControllers();
 app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
