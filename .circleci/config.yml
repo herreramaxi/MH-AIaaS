@@ -12,9 +12,6 @@ jobs:
     # Be sure to update the tag on this image to a more stable version, using latest can result in unstable builds.
     docker:
       - image: mcr.microsoft.com/dotnet/sdk:6.0
-        auth:
-          username: $DOCKER_USERNAME
-          password: $DOCKER_PASSWORD
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
@@ -42,6 +39,13 @@ jobs:
       - run:
           name: publish-docker-image
           command: docker push $IMAGE_NAME:$IMAGE_TAG
+  deploy:
+    docker:
+      - image: circleci/node:10.16.3
+    steps:
+      - run:
+          name: deploy-application
+          command: ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export CONTAINER_NAME=\"$CONTAINER_NAME\";export IMAGE_NAME=\"$IMAGE_NAME\";export IMAGE_TAG=\"$IMAGE_TAG\";export PUBLIC_PORT=\"$PUBLIC_PORT\";export INTERNAL_PORT=\"$INTERNAL_PORT\";rm -rf MH-AIaaS;git clone https://github.com/herreramaxi/MH-AIaaS.git;source MH-AIaaS/deploy.sh"
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -60,3 +64,10 @@ workflows:
                 - main
           requires: 
             - build-and-test
+      - deploy:
+          filters:
+            branches:
+              only:
+                - main
+          requires: 
+            - publish
