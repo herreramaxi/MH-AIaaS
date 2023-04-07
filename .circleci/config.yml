@@ -26,7 +26,22 @@ jobs:
           name: Build
           command: |
             dotnet build -c Release
-
+  publish:
+    #working_directory: ~/DevOpsSec-CA
+    docker:
+      - image: mcr.microsoft.com/dotnet/sdk:6.0
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: docker-login
+          command: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      - run:
+          name: build-docker-image
+          command: docker build -t $IMAGE_NAME:$IMAGE_TAG .
+      - run:
+          name: publish-docker-image
+          command: docker push $IMAGE_NAME:$IMAGE_TAG
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -34,3 +49,14 @@ workflows:
     # Inside the workflow, you define the jobs you want to run.
     jobs:
       - build-and-test
+          filters:
+            branches:
+              only:
+                - main
+      - publish:
+          filters:
+            branches:
+              only:
+                - main
+          requires: 
+            - build-and-test
