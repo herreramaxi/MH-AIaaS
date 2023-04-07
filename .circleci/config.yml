@@ -38,7 +38,7 @@ jobs:
           command: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - run:
           name: build-docker-image
-          command: docker build -t $IMAGE_NAME:$IMAGE_TAG .
+          command: docker build -f src/AIaaS.WebAPI/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG .
       - run:
           name: publish-docker-image
           command: docker push $IMAGE_NAME:$IMAGE_TAG
