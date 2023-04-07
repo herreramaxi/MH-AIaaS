@@ -14,8 +14,9 @@ then
   docker rm $CONTAINER_NAME
 fi
 
+rm .env
 touch .env
-echo "PORT_WEBAPI=$INTERNAL_PORT " | tee -a .env
+echo "PORT_WEBAPI=$INTERNAL_PORT" | tee -a .env
 echo "CLIENT_ORIGIN_URL=$CLIENT_ORIGIN_URL" | tee -a .env
 echo "AUTH0_AUDIENCE=$AUTH0_AUDIENCE" | tee -a .env
 echo "AUTH0_DOMAIN=$AUTH0_DOMAIN" | tee -a .env
