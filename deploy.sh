@@ -16,6 +16,7 @@ fi
 
 docker create -p $PUBLIC_PORT:$INTERNAL_PORT --name $CONTAINER_NAME $IMAGE_NAME:$IMAGE_TAG
 
-sudo cp nginx.conf /etc/nginx/nginx.conf
+sudo cp MH-AIaaS/nginx.conf /etc/nginx/nginx.conf
+sudo nginx -s reload
 
 docker start $CONTAINER_NAME
