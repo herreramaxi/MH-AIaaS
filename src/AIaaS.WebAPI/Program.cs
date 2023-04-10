@@ -2,6 +2,7 @@ using AIaaS.WebAPI.Middlewares;
 using AIaaS.WebAPI.Services;
 using dotenv.net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 
@@ -62,6 +63,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
 var requiredVars =
     new string[] {
           "PORT_WEBAPI",
@@ -79,6 +81,11 @@ foreach (var key in requiredVars)
         throw new Exception($"Config variable missing: {key}.");
     }
 }
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 app.MapGet("/test", () =>
 {

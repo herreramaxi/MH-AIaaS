@@ -1,0 +1,34 @@
+  32  sudo amazon-linux-extras list | grep nginx
+   33  sudo amazon-linux-extras enable nginx1
+   34  nginx -v
+   35  sudo amazon-linux-extras enable nginx1
+  167  nginx -t
+  168  sudo nginx -t
+  170  sudo nginx -s reload
+  171  sudo nginx -s reload
+  172  nginx -v
+  175  service nginx status
+  176  systemctl status nginx
+  177  sudo service nginx restart
+  178  systemctl status nginx
+  181  systemctl status nginx
+  182  chkconfig nginx on
+  183  sudo chkconfig nginx on
+  184   chkconfig nginx --list
+  185  sudo  chkconfig nginx --list
+  186  systemctl status nginx
+  188  systemctl status nginx
+  191  cd /etc/nginx/
+  192  vim nginx.conf
+  193  sudo vim nginx.conf
+  195  sudo nginx -t
+  196  sudo nginx -s reload
+  201  sudo vim nginx.conf
+  212  cat nginx.conf
+  222  sudo vim nginx.conf
+  225  sudo nginx -s reload
+  226  sudo nginx -t
+  228  sudo nginx -t
+  229  sudo nginx -s reload
+  261  sudo vim /etc/nginx/nginx.conf
+  262  history | grep nginx

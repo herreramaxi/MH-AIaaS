@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.circleci\config.yml = .circleci\config.yml
 		deploy.sh = deploy.sh
+		nginx.conf = nginx.conf
+		nginx.txt = nginx.txt
 	EndProjectSection
 EndProject
 Global
