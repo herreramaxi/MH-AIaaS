@@ -16,15 +16,6 @@ fi
 
 docker create -p $PUBLIC_PORT:$INTERNAL_PORT --name $CONTAINER_NAME $IMAGE_NAME:$IMAGE_TAG
 
-sudo cp nginx.conf /etc/nginx
-
-rm .env
-touch .env
-echo "PORT_WEBAPI=$INTERNAL_PORT" | tee -a .env
-echo "CLIENT_ORIGIN_URL=$CLIENT_ORIGIN_URL" | tee -a .env
-echo "AUTH0_AUDIENCE=$AUTH0_AUDIENCE" | tee -a .env
-echo "AUTH0_DOMAIN=$AUTH0_DOMAIN" | tee -a .env
-docker cp .env $CONTAINER_NAME:/app/.env
-#TODO: remove .env
+sudo cp nginx.conf /etc/nginx/nginx.conf
 
 docker start $CONTAINER_NAME
