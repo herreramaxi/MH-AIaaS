@@ -4,11 +4,11 @@ using AIaaS.WebAPI.Middlewares;
 using AIaaS.WebAPI.Services;
 using dotenv.net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +17,14 @@ builder.Host.ConfigureAppConfiguration((configBuilder) =>
     configBuilder.Sources.Clear();
     DotEnv.Load();
     configBuilder.AddEnvironmentVariables();
+});
+
+builder.Host.UseSerilog((hostContext, services, configuration) =>
+{
+    configuration
+    .Enrich.WithThreadId()
+    .WriteTo.Console();
+
 });
 
 builder.WebHost.ConfigureKestrel(serverOptions =>
@@ -73,7 +81,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-//app.MapHealthChecks("/health-check");
 app.MapHealthChecks();
 
 app.CreateDbIfNotExists();
