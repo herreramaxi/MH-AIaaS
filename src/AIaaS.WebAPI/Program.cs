@@ -1,8 +1,12 @@
+using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.Infrastructure;
 using AIaaS.WebAPI.Middlewares;
 using AIaaS.WebAPI.Services;
 using dotenv.net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 
@@ -19,6 +23,12 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.AddServerHeader = false;
 });
+
+builder.Services.AddDbContext<AIaaSContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetValue<string>("DATABASE_CONNECTIONSTRING")));
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AIaaSContext>();
 
 builder.Services.AddScoped<IMessageService, MessageService>();
 
@@ -63,6 +73,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+//app.MapHealthChecks("/health-check");
+app.MapHealthChecks();
+
+app.CreateDbIfNotExists();
 
 var requiredVars =
     new string[] {
@@ -70,6 +84,7 @@ var requiredVars =
           "CLIENT_ORIGIN_URL",
           "AUTH0_DOMAIN",
           "AUTH0_AUDIENCE",
+          "DATABASE_CONNECTIONSTRING"
     };
 
 foreach (var key in requiredVars)
@@ -108,7 +123,11 @@ app.UseAuthorization();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+        options.RoutePrefix = string.Empty;
+    });
 }
 
 app.Run();
