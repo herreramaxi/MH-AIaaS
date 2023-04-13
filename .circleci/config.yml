@@ -45,7 +45,7 @@ jobs:
     steps:
       - run:
           name: deploy-application
-          command: ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export CONTAINER_NAME=\"$CONTAINER_NAME\";export IMAGE_NAME=\"$IMAGE_NAME\";export IMAGE_TAG=\"$IMAGE_TAG\";export PUBLIC_PORT=\"$PUBLIC_PORT\";export INTERNAL_PORT=\"$INTERNAL_PORT\";export CLIENT_ORIGIN_URL=\"$CLIENT_ORIGIN_URL\";export AUTH0_AUDIENCE=\"$AUTH0_AUDIENCE\";export AUTH0_DOMAIN=\"$AUTH0_DOMAIN\";rm -rf MH-AIaaS;git clone https://github.com/herreramaxi/MH-AIaaS.git;source MH-AIaaS/deploy.sh"
+          command: ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export CONTAINER_NAME=\"$CONTAINER_NAME\";export IMAGE_NAME=\"$IMAGE_NAME\";export IMAGE_TAG=\"$IMAGE_TAG\";export PUBLIC_PORT=\"$PUBLIC_PORT\";export INTERNAL_PORT=\"$INTERNAL_PORT\";export CLIENT_ORIGIN_URL=\"$CLIENT_ORIGIN_URL\";export AUTH0_AUDIENCE=\"$AUTH0_AUDIENCE\";export AUTH0_DOMAIN=\"$AUTH0_DOMAIN\";export DATABASE_CONNECTIONSTRING=\"$DATABASE_CONNECTIONSTRING\";rm -rf MH-AIaaS;git clone https://github.com/herreramaxi/MH-AIaaS.git;source MH-AIaaS/deploy.sh"
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
