@@ -1,10 +1,10 @@
 ﻿namespace AIaaS.WebAPI.Models
 {
-    public class User: AuditableEntity
+    public class UserDto: AuditableEntityDto
     {
         public int Id{ get; set; }
         public string Email { get; set; }
         //public string Role { get; set; }
-        public List<Dataset> Datasets { get; set; } = new List<Dataset>();
+        public List<DatasetDto> Datasets { get; set; } = new List<DatasetDto>();
     }
 }

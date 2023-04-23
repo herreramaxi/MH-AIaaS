@@ -1,4 +1,4 @@
-using AIaaS.WebAPI.Models;
+using AIaaS.WebAPI.Models.Dtos;
 using AIaaS.WebAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,15 +18,16 @@ public class MessagesController : ControllerBase
     }
 
     [HttpGet("public")]
-    public ActionResult<Message> GetPublicMessage()
+    [AllowAnonymous]
+    public ActionResult<MessageDto> GetPublicMessage()
     {
         var id = User.Identity;
         return _messageService.GetPublicMessage();
     }
 
     [HttpGet("protected")]
-    [Authorize]
-    public ActionResult<Message> GetProtectedMessage()
+    //[Authorize]
+    public ActionResult<MessageDto> GetProtectedMessage()
     {
         var ct = ClaimTypes.Role;
         var isPresent = User.FindFirst(ct);
@@ -36,15 +37,20 @@ public class MessagesController : ControllerBase
 
     [HttpGet("admin")]
     //[Authorize]
-    [Authorize(Roles = "Administrator")]
-    public ActionResult<Message> GetAdminMessage()
+    //[Authorize(Roles = "Administrator")]
+    [Authorize(Policy = "Administrator")]
+    public ActionResult<MessageDto> GetAdminMessage()
     {
+        var surname= ClaimTypes.Surname;
+        var givenname= ClaimTypes.GivenName;
+        var email = ClaimTypes.Email;
         return _messageService.GetAdminMessage();
     }
 
     [HttpGet("administrator")]
-    [Authorize(Roles = "Administrator")]
-    public ActionResult<Message> GetAdminRoleMessage()
+    //[Authorize(Roles = "Administrator")]
+    [Authorize(Policy = "Administrator")]
+    public ActionResult<MessageDto> GetAdminRoleMessage()
     {
         return _messageService.GetProtectedMessage();
     }

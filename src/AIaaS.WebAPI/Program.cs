@@ -32,8 +32,12 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.AddServerHeader = false;
 });
 
+builder.Services.AddHttpContextAccessor();
+//builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddDbContext<AIaaSContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetValue<string>("DATABASE_CONNECTIONSTRING")));
+
+//builder.Services.AddScoped<AIaaSContext, AIaaSContext>();
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AIaaSContext>();
@@ -44,21 +48,22 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(
-            builder.Configuration.GetValue<string>("CLIENT_ORIGIN_URL"))
-            .WithHeaders(new string[] {
-                HeaderNames.ContentType,
-                HeaderNames.Authorization,
-            })
-            .WithMethods("GET")
+        policy.WithOrigins(builder.Configuration.GetValue<string>("CLIENT_ORIGIN_URL"))
+            //.WithHeaders(new string[] {
+            //    HeaderNames.ContentType,
+            //    HeaderNames.Authorization,
+            //})
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()
+            //.WithMethods("GET")
             .SetPreflightMaxAge(TimeSpan.FromSeconds(86400));
     });
 });
 
 builder.Services.AddControllers();
 
-builder.Host.ConfigureServices((services) =>
-    services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
             var audience =
@@ -72,8 +77,15 @@ builder.Host.ConfigureServices((services) =>
                 ValidateAudience = true,
                 ValidateIssuerSigningKey = true
             };
-        })
-);
+        });
+
+builder.Services.AddAuthorization(o =>
+{
+
+    o.AddPolicy("Administrator", p => p.
+        RequireAuthenticatedUser().
+        RequireRole("Administrator"));
+});
 
 //TODO: Check if disable on prod or not
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -119,9 +131,10 @@ app.Urls.Add($"http://+:{app.Configuration.GetValue<string>("PORT_WEBAPI")}");
 
 app.UseErrorHandler();
 //app.UseSecureHeaders();
-app.MapControllers();
-app.UseCors();
+app.MapControllers()
+    .RequireAuthorization();
 
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 //app.UseHttpsRedirection();

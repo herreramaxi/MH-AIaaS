@@ -1,21 +1,21 @@
-using AIaaS.WebAPI.Models;
+using AIaaS.WebAPI.Models.Dtos;
 
 namespace AIaaS.WebAPI.Services;
 
 public class MessageService : IMessageService
 {
-    public Message GetAdminMessage()
+    public MessageDto GetAdminMessage()
     {
-        return new Message { text = "This is an admin message2." };
+        return new MessageDto { text = "This is an admin message2." };
     }
 
-    public Message GetProtectedMessage()
+    public MessageDto GetProtectedMessage()
     {
-        return new Message { text = "This is a protected message2." };
+        return new MessageDto { text = "This is a protected message2." };
     }
 
-    public Message GetPublicMessage()
+    public MessageDto GetPublicMessage()
     {
-        return new Message { text = "This is a public message2." };
+        return new MessageDto { text = "This is a public message2." };
     }
 }

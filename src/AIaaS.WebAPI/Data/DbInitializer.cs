@@ -1,4 +1,5 @@
 ﻿using AIaaS.WebAPI.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace AIaaS.WebAPI.Data
 {
@@ -6,8 +7,8 @@ namespace AIaaS.WebAPI.Data
     {
         public static void Initialize(AIaaSContext context)
         {
-            context.Database.EnsureCreated();
-
+            //context.Database.EnsureCreated();
+            context.Database.Migrate();
             // Look for any students.
             if (context.Users.Any())
             {
@@ -16,7 +17,7 @@ namespace AIaaS.WebAPI.Data
 
             var users = new User[]
             {
-            new User{Email="admin@mh-aiaas.com"},
+            new User{Email="herreramaxi@gmail.com"},
             new User{Email="user1@mh-aiaas.com"},
             new User{Email="user2@mh-aiaas.com"},
             new User{Email="user3@mh-aiaas.com"},
