@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AIaaS.WebAPI.Data
 {
-    public class AIaaSContext : DbContext
+    public class EfContext : DbContext
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public AIaaSContext(DbContextOptions<AIaaSContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
+        public EfContext(DbContextOptions<EfContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
         {
             _httpContextAccessor = httpContextAccessor;
         }
@@ -17,6 +17,7 @@ namespace AIaaS.WebAPI.Data
         public DbSet<Dataset> Datasets { get; set; }
         public DbSet<ColumnSetting> ColumnSettings { get; set; }
         public DbSet<FileStorage> FileStorages { get; set; }
+        public DbSet<Workflow> Workflows { get; set; }
         //protected override void OnConfiguring(DbContextOptionsBuilder options)
         //=> options.UseSqlServer($"Data Source={DbPath}");
         //protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -61,12 +62,12 @@ namespace AIaaS.WebAPI.Data
                     // so we set their state as IsModified to false
                     Entry((AuditableEntity)entityEntry.Entity).Property(p => p.CreatedOn).IsModified = false;
                     Entry((AuditableEntity)entityEntry.Entity).Property(p => p.CreatedBy).IsModified = false;
+                }
 
-                    // In any case we always want to set the properties
-                    // ModifiedAt and ModifiedBy
-                    ((AuditableEntity)entityEntry.Entity).ModifiedOn = DateTime.UtcNow;
-                    ((AuditableEntity)entityEntry.Entity).ModifiedBy = _httpContextAccessor?.HttpContext?.User?.GetEmail() ?? "N/A";
-                }               
+                // In any case we always want to set the properties
+                // ModifiedAt and ModifiedBy
+                ((AuditableEntity)entityEntry.Entity).ModifiedOn = DateTime.UtcNow;
+                ((AuditableEntity)entityEntry.Entity).ModifiedBy = _httpContextAccessor?.HttpContext?.User?.GetEmail() ?? "N/A";
             }
 
             // After we set all the needed properties

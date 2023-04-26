@@ -26,7 +26,6 @@ public class MessagesController : ControllerBase
     }
 
     [HttpGet("protected")]
-    //[Authorize]
     public ActionResult<MessageDto> GetProtectedMessage()
     {
         var ct = ClaimTypes.Role;
@@ -35,9 +34,7 @@ public class MessagesController : ControllerBase
         return _messageService.GetProtectedMessage();
     }
 
-    [HttpGet("admin")]
-    //[Authorize]
-    //[Authorize(Roles = "Administrator")]
+    [HttpGet("admin")]  
     [Authorize(Policy = "Administrator")]
     public ActionResult<MessageDto> GetAdminMessage()
     {

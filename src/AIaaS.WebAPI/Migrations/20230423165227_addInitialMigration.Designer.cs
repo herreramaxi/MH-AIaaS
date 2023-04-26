@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace AIaaS.WebAPI.Migrations
 {
-    [DbContext(typeof(AIaaSContext))]
+    [DbContext(typeof(EfContext))]
     [Migration("20230423165227_addInitialMigration")]
     partial class addInitialMigration
     {

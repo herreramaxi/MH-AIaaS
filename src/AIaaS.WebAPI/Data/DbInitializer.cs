@@ -5,7 +5,7 @@ namespace AIaaS.WebAPI.Data
 {
     public static class DbInitializer
     {
-        public static void Initialize(AIaaSContext context)
+        public static void Initialize(EfContext context)
         {
             //context.Database.EnsureCreated();
             context.Database.Migrate();

@@ -3,6 +3,7 @@ using AIaaS.WebAPI.Models;
 using AIaaS.WebAPI.Models.Dtos;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -11,20 +12,21 @@ using System.Security.Claims;
 
 namespace AIaaS.WebAPI.Controllers
 {
+    [Authorize(Policy = "Administrator")]
     [Route("api/[controller]")]
     [ApiController]
-    public class DatasetController : ControllerBase
+    public class DatasetsController : ControllerBase
     {
-        private readonly AIaaSContext _dbContext;
+        private readonly EfContext _dbContext;
 
-        public DatasetController(AIaaSContext dbContext)
+        public DatasetsController(EfContext dbContext)
         {
             _dbContext = dbContext;
         }
 
         [HttpGet]
         public async Task<ActionResult> Get()
-        {          
+        {
             var datasets = await _dbContext.Datasets.ToListAsync();
             var dtos = datasets.Select(x => new DatasetDto
             {
@@ -46,8 +48,8 @@ namespace AIaaS.WebAPI.Controllers
             return Ok(dtos);
         }
 
-        [HttpPost("Create")]
-        public ActionResult Create(DatasetDto datasetDto)
+        [HttpPost]
+        public async Task<IActionResult> Create(DatasetDto datasetDto)
         {
             if (datasetDto is null)
                 return BadRequest("Dataset is required");
@@ -56,7 +58,7 @@ namespace AIaaS.WebAPI.Controllers
             if (userEmail == null)
                 return BadRequest("User email not found on request");
 
-            var user = _dbContext.Users.FirstOrDefault(x => x.Email.ToLower().Equals(userEmail.ToLower()));
+            var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Email.ToLower().Equals(userEmail.ToLower()));
 
             if (user == null)
                 return BadRequest("User not found");
@@ -78,19 +80,19 @@ namespace AIaaS.WebAPI.Controllers
 
             dataset.ColumnSettings.AddRange(columnSettings);
 
-            _dbContext.Add(dataset);
-            _dbContext.SaveChanges();
+            await _dbContext.AddAsync(dataset);
+            await _dbContext.SaveChangesAsync();
 
             return Created("", dataset.Id);
         }
 
         [HttpPost("Upload/{datasetId}")]
-        public async Task<ActionResult> Upload([FromForm] IFormFile file, int datasetId)
+        public async Task<IActionResult> Upload([FromForm] IFormFile file, int datasetId)
         {
             if (file is null)
                 return BadRequest("File is required");
 
-            var dataset =await  _dbContext.Datasets.FindAsync(datasetId);
+            var dataset = await _dbContext.Datasets.FindAsync(datasetId);
 
             if (dataset is null)
                 return BadRequest("Dataset not found");
@@ -108,14 +110,14 @@ namespace AIaaS.WebAPI.Controllers
             };
 
             fileStorage.Data = memStream.ToArray();
-            _dbContext.FileStorages.Add(fileStorage);
-            _dbContext.SaveChanges();
+            await _dbContext.FileStorages.AddAsync(fileStorage);
+            await _dbContext.SaveChangesAsync();
 
             return Created("", null);
         }
 
         [HttpPost("Remove")]
-        public ActionResult Remove([FromForm] string fileNames)
+        public IActionResult Remove([FromForm] string fileNames)
         {
             if (string.IsNullOrEmpty(fileNames))
                 return BadRequest("fileNames is required");
@@ -124,7 +126,7 @@ namespace AIaaS.WebAPI.Controllers
         }
 
         [HttpPost("Preview")]
-        public ActionResult Preview([FromForm] IFormFile file)
+        public IActionResult Preview([FromForm] IFormFile file)
         {
             //var file = Request.Form.Files[0];
             if (file is null)
@@ -213,7 +215,8 @@ namespace AIaaS.WebAPI.Controllers
             return Ok(fileAnalysis);
         }
 
-        public void PP() {
+        private void PP()
+        {
             var ds = _dbContext.Datasets.Find(7);
             _dbContext.Entry(ds).Reference(nameof(ds.FileStorage)).Load();
 

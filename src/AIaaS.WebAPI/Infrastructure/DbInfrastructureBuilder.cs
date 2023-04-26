@@ -11,7 +11,7 @@ namespace AIaaS.WebAPI.Infrastructure
                 var services = scope.ServiceProvider;
                 try
                 {
-                    var context = services.GetRequiredService<AIaaSContext>();
+                    var context = services.GetRequiredService<EfContext>();
                     DbInitializer.Initialize(context);
                 }
                 catch (Exception ex)
