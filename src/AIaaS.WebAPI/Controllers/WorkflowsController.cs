@@ -4,6 +4,7 @@ using AIaaS.WebAPI.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace AIaaS.WebAPI.Controllers
 {
@@ -39,7 +40,19 @@ namespace AIaaS.WebAPI.Controllers
             if (workflow is null)
                 return NotFound();
 
-            return Ok(workflow);
+            var dto = new WorkflowDto()
+            {
+                Id = workflow.Id,
+                Name = workflow.Name,
+                Description = workflow.Description,
+                IsPublished = workflow.IsPublished,
+                CreatedBy = workflow.CreatedBy,
+                CreatedOn = workflow.CreatedOn,
+                ModifiedBy = workflow.ModifiedBy,
+                ModifiedOn= workflow.ModifiedOn,
+                Root= workflow.Data
+            };
+            return Ok(dto);
         }
 
         [HttpPost]
@@ -55,6 +68,29 @@ namespace AIaaS.WebAPI.Controllers
 
             return CreatedAtAction(nameof(GetById), new { id = workflow.Id }, workflow);
         }
+
+        [HttpPut]
+        public async Task<IActionResult> Save(WorkflowDto workflowDto)
+        {
+            if (workflowDto == null)
+                return BadRequest("Workflow is required");
+
+            if (workflowDto.Id <= 0)
+                return BadRequest("Workflow id must be greater than zero");
+
+            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+            if (workflow == null)
+                return NotFound();
+
+            //var graphSerialized = JsonSerializer.Serialize(workflowDto.Root);
+            workflow.Data = workflowDto.Root;
+
+            _dbContext.Workflows.Update(workflow);
+            await _dbContext.SaveChangesAsync();
+
+            return NoContent();
+        }
+
 
         [HttpPost("rename")]
         public async Task<IActionResult> Rename(WorkflowRenameParameter renameParameter)
