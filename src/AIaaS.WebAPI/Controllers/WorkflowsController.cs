@@ -113,5 +113,21 @@ namespace AIaaS.WebAPI.Controllers
 
             return CreatedAtAction(nameof(GetById), new { id = renameParameter.Id }, workflowFromDb);
         }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Remove([FromRoute] int id)
+        {
+            if (id <= 0)
+                return BadRequest("Id parameter should be greater than zero");
+
+            var workflow = await _dbContext.Workflows.FirstOrDefaultAsync(x => x.Id == id);
+            if (workflow is null)
+                return NotFound();
+
+            _dbContext.Workflows.Remove(workflow);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok();
+        }
     }
 }

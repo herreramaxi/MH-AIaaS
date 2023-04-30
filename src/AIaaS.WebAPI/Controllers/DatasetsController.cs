@@ -116,11 +116,18 @@ namespace AIaaS.WebAPI.Controllers
             return Created("", null);
         }
 
-        [HttpPost("Remove")]
-        public IActionResult Remove([FromForm] string fileNames)
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Remove([FromRoute]int id)
         {
-            if (string.IsNullOrEmpty(fileNames))
-                return BadRequest("fileNames is required");
+            if (id<=0)
+                return BadRequest("Id parameter should be greater than zero");
+
+            var dataset =await  _dbContext.Datasets.FirstOrDefaultAsync(x => x.Id == id);
+            if (dataset is null)
+                return NotFound();
+
+            _dbContext.Datasets.Remove(dataset);
+            await _dbContext.SaveChangesAsync();
 
             return Ok();
         }
