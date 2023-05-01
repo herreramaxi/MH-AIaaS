@@ -10,7 +10,7 @@ namespace AIaaS.WebAPI.Controllers
     [ApiController]
     public class MlModelsController : ControllerBase
     {
-        private static List<MlModelDto> _models = new List<MlModelDto>()
+        public static List<MlModelDto> _models = new List<MlModelDto>()
             {
                 new MlModelDto(){ Id = 1, Name= "Housing - Price Prediction" , Status = "Published", CreatedBy = "Maxi Herrera", CreatedOn = DateTime.Now, ModifiedBy = "Herrera Maxi" , ModifiedOn = DateTime.Now},
                 new MlModelDto(){ Id = 2, Name= "Flower Types - Classification" , Status = "Running", CreatedBy = "Maxi Herrera", CreatedOn = DateTime.Now, ModifiedBy = "Herrera Maxi" , ModifiedOn = DateTime.Now},
