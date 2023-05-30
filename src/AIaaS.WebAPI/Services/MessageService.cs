@@ -1,3 +1,4 @@
+using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Models.Dtos;
 
 namespace AIaaS.WebAPI.Services;

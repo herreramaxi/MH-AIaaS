@@ -58,25 +58,27 @@ namespace ConsoleAppTest
             new TextLoader.Column("Newspaper",DataKind.Single,2),
              new TextLoader.Column("Sales",DataKind.Single,3),
             };
-
+       
             // STEP 1: Common data loading configuration
             //IDataView baseTrainingDataView = mlContext.Data.LoadFromTextFile<AdvertisingRow>(Dataset, hasHeader: true, separatorChar: ',');
             IDataView baseTrainingDataView = mlContext.Data.LoadFromTextFile(Dataset, columns, hasHeader: true, separatorChar: ',');
             TrainTestData trainTestSplit = mlContext.Data.TrainTestSplit(baseTrainingDataView, testFraction: 0.2);
             IDataView trainingData = trainTestSplit.TrainSet;
             IDataView testData = trainTestSplit.TestSet;
-
+                                    
             // STEP 2: Common data process configuration with pipeline data transformations
             var dataProcessPipeline = mlContext.Transforms.CopyColumns(outputColumnName: "Label", inputColumnName: nameof(AdvertisingRow.Sales))
-                            .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Tv)))
+                            .Append(  mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Tv)))
                             .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Radio)))
                             .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Newspaper)))
                             .Append(mlContext.Transforms.Concatenate("Features", nameof(AdvertisingRow.Tv)));
 
+            
             // (OPTIONAL) Peek data (such as 5 records) in training DataView after applying the ProcessPipeline's transformations into "Features" 
             ConsoleHelper.PeekDataViewInConsole(mlContext, trainingData, dataProcessPipeline, 5);
             ConsoleHelper.PeekVectorColumnDataInConsole(mlContext, "Features", trainingData, dataProcessPipeline, 5);
 
+            
             // STEP 3: Set the training algorithm, then create and config the modelBuilder - Selected Trainer (SDCA Regression algorithm)                            
             var trainer = mlContext.Regression.Trainers.Sdca(labelColumnName: "Label", featureColumnName: "Features");
             var trainingPipeline = dataProcessPipeline.Append(trainer);
@@ -131,7 +133,8 @@ namespace ConsoleAppTest
             sample.Newspaper = 8;
             sample.Sales = 0;
 
-            dynamic dynamicPredictionEngine;
+            //mlContext.Model.CreatePredictionEngine<int>()
+           dynamic dynamicPredictionEngine;
             //SchemaDefinition inputSchemaDefinition = null, SchemaDefinition outputSchemaDefinition = null
             var genericPredictionMethod = mlContext.Model.GetType().GetMethod("CreatePredictionEngine", new[] { typeof(ITransformer), typeof(bool), typeof(SchemaDefinition), typeof(SchemaDefinition) });
             //var predictionMethod = genericPredictionMethod.MakeGenericMethod(typeof(AdvertisingRow),typeof(AdvertisingRowPrediction));// predictionObject.GetType());

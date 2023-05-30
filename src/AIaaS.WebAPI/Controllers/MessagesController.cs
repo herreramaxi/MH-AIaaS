@@ -1,5 +1,5 @@
+using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Models.Dtos;
-using AIaaS.WebAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;

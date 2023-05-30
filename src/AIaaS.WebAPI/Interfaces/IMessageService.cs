@@ -1,6 +1,6 @@
 using AIaaS.WebAPI.Models.Dtos;
 
-namespace AIaaS.WebAPI.Services;
+namespace AIaaS.WebAPI.Interfaces;
 
 public interface IMessageService
 {

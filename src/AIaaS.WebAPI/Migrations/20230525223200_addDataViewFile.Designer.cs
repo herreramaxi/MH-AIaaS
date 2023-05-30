@@ -4,6 +4,7 @@ using AIaaS.WebAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AIaaS.WebAPI.Migrations
 {
     [DbContext(typeof(EfContext))]
-    partial class AIaaSContextModelSnapshot : ModelSnapshot
+    [Migration("20230525223200_addDataViewFile")]
+    partial class addDataViewFile
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -189,45 +192,6 @@ namespace AIaaS.WebAPI.Migrations
                     b.ToTable("FileStorages");
                 });
 
-            modelBuilder.Entity("AIaaS.WebAPI.Models.MLModel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<byte[]>("Data")
-                        .IsRequired()
-                        .HasColumnType("varbinary(max)");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ModifiedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<long>("Size")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("WorkflowId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WorkflowId")
-                        .IsUnique();
-
-                    b.ToTable("MLModels");
-                });
-
             modelBuilder.Entity("AIaaS.WebAPI.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -341,17 +305,6 @@ namespace AIaaS.WebAPI.Migrations
                     b.Navigation("Dataset");
                 });
 
-            modelBuilder.Entity("AIaaS.WebAPI.Models.MLModel", b =>
-                {
-                    b.HasOne("AIaaS.WebAPI.Models.Workflow", "Workflow")
-                        .WithOne("MLModel")
-                        .HasForeignKey("AIaaS.WebAPI.Models.MLModel", "WorkflowId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Workflow");
-                });
-
             modelBuilder.Entity("AIaaS.WebAPI.Models.Dataset", b =>
                 {
                     b.Navigation("ColumnSettings");
@@ -364,11 +317,6 @@ namespace AIaaS.WebAPI.Migrations
             modelBuilder.Entity("AIaaS.WebAPI.Models.User", b =>
                 {
                     b.Navigation("Datasets");
-                });
-
-            modelBuilder.Entity("AIaaS.WebAPI.Models.Workflow", b =>
-                {
-                    b.Navigation("MLModel");
                 });
 #pragma warning restore 612, 618
         }

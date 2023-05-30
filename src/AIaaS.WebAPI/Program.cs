@@ -1,5 +1,6 @@
 using AIaaS.WebAPI.Data;
 using AIaaS.WebAPI.Infrastructure;
+using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Middlewares;
 using AIaaS.WebAPI.Services;
 using dotenv.net;
@@ -7,7 +8,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using System.Reflection;
@@ -45,6 +45,18 @@ builder.Services.AddHealthChecks()
     .AddDbContextCheck<EfContext>();
 
 builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<IOperatorService, OperatorService>();
+builder.Services.AddScoped<IWorkflowService, WorkflowService>();
+
+var workflowOperatorTypes = typeof(IWebApiMarker).Assembly
+    .GetTypes()
+    .Where(x => typeof(IWorkflowOperator).IsAssignableFrom(x) && !x.IsAbstract && !x.IsInterface);
+
+foreach (var workflowType in workflowOperatorTypes)
+{
+    var serviceDescriptor = new ServiceDescriptor(typeof(IWorkflowOperator), workflowType, ServiceLifetime.Scoped);
+    builder.Services.Add(serviceDescriptor);
+}
 
 builder.Services.AddCors(options =>
 {

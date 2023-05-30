@@ -1,11 +1,16 @@
 ﻿using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.ExtensionMethods;
 using AIaaS.WebAPI.Models;
 using AIaaS.WebAPI.Models.Dtos;
+using AIaaS.WebAPI.Models.enums;
+using AIaaS.WebAPI.Models.Operators;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.ML;
+using Microsoft.ML.AutoML;
 using System.Data;
 using System.Globalization;
 using System.Security.Claims;
@@ -48,6 +53,26 @@ namespace AIaaS.WebAPI.Controllers
             return Ok(dtos);
         }
 
+        [HttpGet("{datasetId:int}/columns")]
+        public async Task<IActionResult> GetColumns([FromRoute] int datasetId)
+        {
+            var dataset = await _dbContext.Datasets.FindAsync(datasetId);
+            if (dataset is null) { return NotFound(); }
+
+            _dbContext.Entry(dataset).Collection(p => p.ColumnSettings).Load();
+
+            var columnSettings = dataset.ColumnSettings
+                .Where(x => x.Include)
+                .Select(x => new ColumnSettingDto
+                {
+                    Id = x.Id,
+                    ColumnName = x.ColumnName,
+                    Type = x.Type
+                });
+
+            return Ok(columnSettings);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create(DatasetDto datasetDto)
         {
@@ -86,6 +111,96 @@ namespace AIaaS.WebAPI.Controllers
             return Created("", dataset.Id);
         }
 
+        public void NewMethod<T>(MLContext mlContext, StreamReader tr) where T : class
+        {
+            var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
+            var csv = new CsvReader(tr, csvConfiguration);
+
+            var records = csv.GetRecords<T>();
+
+            var data = mlContext.Data.LoadFromEnumerable(records);
+            //var preview = data.Preview();
+            using (FileStream stream = new FileStream("data.idv", FileMode.Create))
+                mlContext.Data.SaveAsBinary(data, stream);
+        }
+
+
+        public IDataView NewMethod2<T>(MLContext mlContext, StreamReader tr) where T : class
+        {
+            var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
+            var csv = new CsvReader(tr, csvConfiguration);
+            var records = csv.GetRecords<T>().ToList();
+            var data = mlContext.Data.LoadFromEnumerable(records);
+            
+            return data;
+        }
+
+        [HttpPost("UploadTest/{datasetId}")]
+        public async Task<IActionResult> UploadTest([FromForm] IFormFile file, int datasetId)
+        {
+            if (file is null)
+                return BadRequest("File is required");
+            
+            var dataset = await _dbContext.Datasets.FindAsync(datasetId);
+
+            if (dataset is null)
+                return BadRequest("Dataset not found");
+
+            await _dbContext.Entry(dataset).Collection(x => x.ColumnSettings).LoadAsync();
+            var propertyTypes = dataset.ColumnSettings.Select(x => (x.ColumnName, x.Type.ToDataType()));
+
+            var mlContext = new MLContext(seed: 0);
+         
+
+            //mlContext.Auto().InferColumns()
+            //mlContext.Data.SaveAsBinary(data, stream);
+            //mlContext.Data.LoadFromEnumerable
+
+            using var reader = file.OpenReadStream();
+            using var tr = new StreamReader(reader);
+
+            var isGeneric = true;
+
+            if (isGeneric)
+            {
+                var rowType = ClassFactory.CreateType(propertyTypes);
+                var methodInfo = this.GetType().GetMethods().FirstOrDefault(x => x.Name == "NewMethod");
+                var processMethod = methodInfo.MakeGenericMethod(rowType);// predictionObject.GetType());
+                processMethod.Invoke(this, new object[] { mlContext, tr });
+            }
+            else {
+                var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
+                var csv = new CsvReader(tr, csvConfiguration);
+
+                var records = csv.GetRecords<SalesRow>();
+
+                var data = mlContext.Data.LoadFromEnumerable(records);
+                //var preview = data.Preview();
+                using (FileStream stream = new FileStream("data2.idv", FileMode.Create))
+                {
+                    mlContext.Data.SaveAsBinary(data, stream);
+                    stream.Flush();
+                }
+
+
+            }
+            //using var memStream = new MemoryStream();
+            //await reader.CopyToAsync(memStream);
+
+            //var fileStorage = new FileStorage()
+            //{
+            //    FileName = file.FileName,
+            //    Size = file.Length,
+            //    Dataset = dataset
+            //};          
+
+            //fileStorage.Data = memStream.ToArray();
+            //await _dbContext.FileStorages.AddAsync(fileStorage);
+            //await _dbContext.SaveChangesAsync();
+
+            return Created("", null);
+        }
+
         [HttpPost("Upload/{datasetId}")]
         public async Task<IActionResult> Upload([FromForm] IFormFile file, int datasetId)
         {
@@ -96,6 +211,9 @@ namespace AIaaS.WebAPI.Controllers
 
             if (dataset is null)
                 return BadRequest("Dataset not found");
+
+            await _dbContext.Entry(dataset).Collection(x => x.ColumnSettings).LoadAsync();
+            var propertyTypes = dataset.ColumnSettings.Select(x => (x.ColumnName, x.Type.ToDataType()));
 
             using var reader = file.OpenReadStream();
             using var tr = new StreamReader(reader);
@@ -113,16 +231,42 @@ namespace AIaaS.WebAPI.Controllers
             await _dbContext.FileStorages.AddAsync(fileStorage);
             await _dbContext.SaveChangesAsync();
 
+            reader.Seek(0, SeekOrigin.Begin);
+
+            var mlContext = new MLContext();
+
+            //var propertyTypes = columnSettings.Select(x => (x.ColumnName, x.Type.ToDataType()));
+            var rowType = ClassFactory.CreateType(propertyTypes);
+
+          
+            var methodInfo = this.GetType().GetMethods().FirstOrDefault(x => x.Name == "NewMethod2");
+            var processMethod = methodInfo.MakeGenericMethod(rowType);
+            var baseTrainingDataView = processMethod.Invoke(this, new object[] { mlContext, tr }) as IDataView;
+            
+           using var stream = new MemoryStream();
+            mlContext.Data.SaveAsBinary(baseTrainingDataView, stream);
+
+            var dataview = new DataViewFile()
+            {
+                Size = stream.Length,
+                Dataset = dataset
+            };
+
+            dataview.Data = stream.ToArray();
+            await _dbContext.DataViewFiles.AddAsync(dataview);
+            await _dbContext.SaveChangesAsync();
+
             return Created("", null);
         }
 
+
         [HttpDelete("{id:int}")]
-        public async Task<IActionResult> Remove([FromRoute]int id)
+        public async Task<IActionResult> Remove([FromRoute] int id)
         {
-            if (id<=0)
+            if (id <= 0)
                 return BadRequest("Id parameter should be greater than zero");
 
-            var dataset =await  _dbContext.Datasets.FirstOrDefaultAsync(x => x.Id == id);
+            var dataset = await _dbContext.Datasets.FirstOrDefaultAsync(x => x.Id == id);
             if (dataset is null)
                 return NotFound();
 
@@ -151,7 +295,7 @@ namespace AIaaS.WebAPI.Controllers
             var rowIndex = 0;
             var MaxRows = 11;
             var records = new string[MaxRows][];
-
+            
             while (csv.Read())
             {
                 if (rowIndex >= MaxRows) break;
@@ -207,10 +351,10 @@ namespace AIaaS.WebAPI.Controllers
 
                 switch (maxIndex)
                 {
-                    case 0: columnSetting.Type = "Datetime"; break;
-                    case 1: columnSetting.Type = "Int"; break;
-                    case 2: columnSetting.Type = "Decimal"; break;
-                    case 3: columnSetting.Type = "String"; break;
+                    case 0: columnSetting.Type = ColumnDataTypeEnum.Datetime.ToString(); break;
+                    case 1: columnSetting.Type = ColumnDataTypeEnum.Int.ToString(); break;
+                    case 2: columnSetting.Type = ColumnDataTypeEnum.Decimal.ToString(); break;
+                    case 3: columnSetting.Type = ColumnDataTypeEnum.String.ToString(); break;
                 }
 
                 fileAnalysis.ColumnsSettings.Add(columnSetting);
@@ -233,7 +377,7 @@ namespace AIaaS.WebAPI.Controllers
             using var tr = new StreamReader(memStream);
             var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
             using var csv = new CsvReader(tr, csvConfiguration);
-            var readed = csv.Read();
+            var readed = csv.Read();            
         }
     }
 }

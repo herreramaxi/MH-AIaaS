@@ -16,12 +16,12 @@ namespace ConsoleAppTest
         private static string BaseModelsRelativePath = @"../../../../MLModels";
         private static string ModelRelativePath = $"Housing.zip";
         private static readonly Dictionary<int, int> MISSING_INDEXES = new Dictionary<int, int>();
-        internal class MissingData : HousingRow
+        internal class MissingData : HousingPricePrediction.HousingRow
         {
             public bool[] MissingValues { get; set; }
 
         }
-        internal class ReplacedValues : HousingRow
+        internal class ReplacedValues : HousingPricePrediction.HousingRow
         {
             public float[] NewValues { get; set; }
         }
@@ -29,7 +29,7 @@ namespace ConsoleAppTest
         public void Run() {
             var context = new MLContext();
 
-            var data = context.Data.LoadFromTextFile<HousingRow>("housing.csv", hasHeader: true, separatorChar: ',');
+            var data = context.Data.LoadFromTextFile<HousingPricePrediction.HousingRow>("housing.csv", hasHeader: true, separatorChar: ',');
 
             var columns = data.Schema
                 .Select(col => col.Name)

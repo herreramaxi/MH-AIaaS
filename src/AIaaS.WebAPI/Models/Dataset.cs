@@ -10,5 +10,6 @@
         public string Delimiter { get; set; }
         public List<ColumnSetting> ColumnSettings { get; set; } = new List<ColumnSetting>();
         public FileStorage? FileStorage { get; set; }
+        public DataViewFile? DataViewFile { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Models;
 using AIaaS.WebAPI.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -49,8 +50,8 @@ namespace AIaaS.WebAPI.Controllers
                 CreatedBy = workflow.CreatedBy,
                 CreatedOn = workflow.CreatedOn,
                 ModifiedBy = workflow.ModifiedBy,
-                ModifiedOn= workflow.ModifiedOn,
-                Root= workflow.Data
+                ModifiedOn = workflow.ModifiedOn,
+                Root = workflow.Data
             };
             return Ok(dto);
         }
@@ -129,5 +130,36 @@ namespace AIaaS.WebAPI.Controllers
 
             return Ok();
         }
+
+
+        [HttpPost("run")]
+        public async Task<IActionResult> Run([FromServices] IWorkflowService  workflowService, WorkflowDto workflowDto)
+        {
+            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+
+            if (workflow is null) {
+                return NotFound("Workflow not found");
+            }
+
+            if (string.IsNullOrEmpty(workflowDto?.Root))
+                return BadRequest("Workflow is required");
+
+            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true};
+            var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
+           
+            if (workflowGraphDto is null)
+            {
+                return BadRequest("Not able to process workflow");
+            }
+
+           await workflowService.Run(workflowGraphDto, workflow);
+
+            //if (workflowGraphDto.Root.Type?.Equals("dataset", StringComparison.CurrentCultureIgnoreCase) != true)
+            //    return BadRequest("Dataset node not found");
+
+         
+            return Ok();
+        }
+
     }
 }
