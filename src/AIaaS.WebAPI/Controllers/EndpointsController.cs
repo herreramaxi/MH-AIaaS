@@ -20,7 +20,7 @@ namespace AIaaS.WebAPI.Controllers
             _dbContext = dbContext;
 
             var workflow = _dbContext.Workflows.SingleOrDefault(x => x.Name == "Housing - Price Prediction");            
-            var model = MlModelsController._models.FirstOrDefault(x => x.Id == 1);
+            var model = MLModelsController._models.FirstOrDefault(x => x.Id == 1);
 
             _endpoints = new List<EndpointDto>()
             {

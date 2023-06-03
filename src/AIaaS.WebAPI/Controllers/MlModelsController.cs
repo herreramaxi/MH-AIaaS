@@ -8,7 +8,7 @@ namespace AIaaS.WebAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class MlModelsController : ControllerBase
+    public class MLModelsController : ControllerBase
     {
         public static List<MlModelDto> _models = new List<MlModelDto>()
             {
@@ -18,7 +18,7 @@ namespace AIaaS.WebAPI.Controllers
             };
         private readonly EfContext _dbContext;
 
-        public MlModelsController(EfContext dbContext)
+        public MLModelsController(EfContext dbContext)
         {
             _dbContext = dbContext;
 

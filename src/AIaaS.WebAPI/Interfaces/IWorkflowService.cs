@@ -5,6 +5,6 @@ namespace AIaaS.WebAPI.Interfaces
 {
     public interface IWorkflowService
     {
-        Task<Result> Run(WorkflowGraphDto workflowGraphDto, Models.Workflow workflow);
+        Task<Result<WorkflowGraphDto>> Run(WorkflowGraphDto workflowGraphDto, Models.Workflow workflow);
     }
 }

@@ -6,8 +6,7 @@ using Microsoft.ML.Data;
 namespace AIaaS.WebAPI.Models.Operators
 {
     [Operator("Evaluate", OperatorType.Evaluate, 5)]
-    [OperatorParameter("Variable Name", "The name of the new or existing variable", "text")]
-    [OperatorParameter("Value", "Javascript expression for the value", "text")]
+    //[OperatorParameter("Label", "The name of the label column", "text")]
     public class EvaluateModelOperator : WorkflowOperatorAbstract
     {
         private readonly ILogger<EvaluateModelOperator> _logger;
@@ -25,11 +24,17 @@ namespace AIaaS.WebAPI.Models.Operators
             //await _dbContext.Entry(workflow).Reference(x=> x.MLModel).LoadAsync();            
             //using var memStream = new MemoryStream(workflow.MLModel.Data);
             //context.TrainedModel = context.MLContext.Model.Load(memStream, out var inputSchema);
+            if (string.IsNullOrEmpty(context.LabelColumn)) {
+                root.Error("No label column found on the pipeline, please select a clabel column from a 'Train Model' operator");
+                return;
+            }
 
             IDataView predictions = context.TrainedModel.Transform(context.TestData);
-            var metrics = context.MLContext.Regression.Evaluate(predictions, labelColumnName: "Sales", scoreColumnName: "Score");
+            var metrics = context.MLContext.Regression.Evaluate(predictions, labelColumnName: context.LabelColumn, scoreColumnName: "Score");
 
-            PrintRegressionMetrics(context.Trainer.ToString(), metrics);             
+            PrintRegressionMetrics(context.Trainer.ToString(), metrics);
+
+            root.Success();
         }
 
         public void PrintRegressionMetrics(string name, RegressionMetrics metrics)

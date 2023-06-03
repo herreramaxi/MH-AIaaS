@@ -1,5 +1,4 @@
 ﻿using Microsoft.ML;
-using Microsoft.ML.Data;
 using Microsoft.ML.Trainers;
 
 namespace AIaaS.WebAPI.Models
@@ -8,12 +7,15 @@ namespace AIaaS.WebAPI.Models
     {
         public MLContext MLContext { get; set; }
         public IDataView DataView { get; set; }
-        public IDataView TrainingData { get; internal set; }
-        public IDataView TestData { get; internal set; }
-        public ITransformer TrainedModel { get; internal set; }
-        public SdcaRegressionTrainer Trainer { get; internal set; }
-        public Dataset Dataset { get; internal set; }
-        public Workflow Workflow { get; internal set; }
-        public IEnumerable<ColumnSetting> ColumnSettings { get; internal set; }
+        public IDataView TrainingData { get; set; }
+        public IDataView TestData { get; set; }
+        public ITransformer TrainedModel { get; set; }
+        public SdcaRegressionTrainer Trainer { get; set; }
+        public Dataset Dataset { get; set; }
+        public Workflow Workflow { get; set; }
+        public IEnumerable<ColumnSetting> ColumnSettings { get; set; }
+        public InputOutputColumnPair[] InputOutputColumns { get; set; }
+        public IEstimator<ITransformer> EstimatorChain { get; set; }
+        public string? LabelColumn { get; internal set; }
     }
 }

@@ -51,7 +51,7 @@ namespace AIaaS.WebAPI.Services
                 }).ToList();
             }
 
-            return operators.OrderBy(x => x.Order).ToList();
+            return operators.OrderBy(x => x.Name).ToList();
         }
     }
 }

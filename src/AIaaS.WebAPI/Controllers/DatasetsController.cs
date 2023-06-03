@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.ML;
 using Microsoft.ML.AutoML;
+using Microsoft.ML.Data;
 using System.Data;
 using System.Globalization;
 using System.Security.Claims;
@@ -23,10 +24,12 @@ namespace AIaaS.WebAPI.Controllers
     public class DatasetsController : ControllerBase
     {
         private readonly EfContext _dbContext;
+        private readonly ILogger<DatasetsController> _logger;
 
-        public DatasetsController(EfContext dbContext)
+        public DatasetsController(EfContext dbContext, ILogger<DatasetsController> logger)
         {
             _dbContext = dbContext;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -129,9 +132,10 @@ namespace AIaaS.WebAPI.Controllers
         {
             var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
             var csv = new CsvReader(tr, csvConfiguration);
+            //TODO: I think I cannot use csv reader
             var records = csv.GetRecords<T>().ToList();
             var data = mlContext.Data.LoadFromEnumerable(records);
-            
+
             return data;
         }
 
@@ -140,7 +144,7 @@ namespace AIaaS.WebAPI.Controllers
         {
             if (file is null)
                 return BadRequest("File is required");
-            
+
             var dataset = await _dbContext.Datasets.FindAsync(datasetId);
 
             if (dataset is null)
@@ -150,7 +154,7 @@ namespace AIaaS.WebAPI.Controllers
             var propertyTypes = dataset.ColumnSettings.Select(x => (x.ColumnName, x.Type.ToDataType()));
 
             var mlContext = new MLContext(seed: 0);
-         
+
 
             //mlContext.Auto().InferColumns()
             //mlContext.Data.SaveAsBinary(data, stream);
@@ -168,7 +172,8 @@ namespace AIaaS.WebAPI.Controllers
                 var processMethod = methodInfo.MakeGenericMethod(rowType);// predictionObject.GetType());
                 processMethod.Invoke(this, new object[] { mlContext, tr });
             }
-            else {
+            else
+            {
                 var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
                 var csv = new CsvReader(tr, csvConfiguration);
 
@@ -201,8 +206,8 @@ namespace AIaaS.WebAPI.Controllers
             return Created("", null);
         }
 
-        [HttpPost("Upload/{datasetId}")]
-        public async Task<IActionResult> Upload([FromForm] IFormFile file, int datasetId)
+        [HttpPost("UploadOld/{datasetId}")]
+        public async Task<IActionResult> UploadOld([FromForm] IFormFile file, int datasetId)
         {
             if (file is null)
                 return BadRequest("File is required");
@@ -238,12 +243,12 @@ namespace AIaaS.WebAPI.Controllers
             //var propertyTypes = columnSettings.Select(x => (x.ColumnName, x.Type.ToDataType()));
             var rowType = ClassFactory.CreateType(propertyTypes);
 
-          
+
             var methodInfo = this.GetType().GetMethods().FirstOrDefault(x => x.Name == "NewMethod2");
             var processMethod = methodInfo.MakeGenericMethod(rowType);
             var baseTrainingDataView = processMethod.Invoke(this, new object[] { mlContext, tr }) as IDataView;
-            
-           using var stream = new MemoryStream();
+
+            using var stream = new MemoryStream();
             mlContext.Data.SaveAsBinary(baseTrainingDataView, stream);
 
             var dataview = new DataViewFile()
@@ -257,6 +262,79 @@ namespace AIaaS.WebAPI.Controllers
             await _dbContext.SaveChangesAsync();
 
             return Created("", null);
+        }
+
+
+        [HttpPost("Upload/{datasetId}")]
+        public async Task<IActionResult> Upload([FromForm] IFormFile file, int datasetId)
+        {
+            var filePath = default(string);
+
+            try
+            {
+                if (file is null)
+                    return BadRequest("File is required");
+
+                var dataset = await _dbContext.Datasets.FindAsync(datasetId);
+
+                if (dataset is null)
+                    return BadRequest("Dataset not found");
+
+                await _dbContext.Entry(dataset).Collection(x => x.ColumnSettings).LoadAsync();
+
+                filePath = await SaveTempFile(file);
+
+                using var reader = file.OpenReadStream();
+                using var tr = new StreamReader(reader);
+                using var memStream = new MemoryStream();
+                await reader.CopyToAsync(memStream);
+
+                var fileStorage = new FileStorage()
+                {
+                    FileName = file.FileName,
+                    Size = file.Length,
+                    Dataset = dataset
+                };
+
+                fileStorage.Data = memStream.ToArray();
+                await _dbContext.FileStorages.AddAsync(fileStorage);
+                await _dbContext.SaveChangesAsync();
+
+                reader.Seek(0, SeekOrigin.Begin);
+
+                var mlContext = new MLContext();
+                var columns = dataset.ColumnSettings.Select((x, index) => new TextLoader.Column(x.ColumnName, x.Type.ToDataKind(), index)).ToArray();
+                //TODO: add options here
+                var dataView = mlContext.Data.LoadFromTextFile(filePath, columns, hasHeader: true, separatorChar: ',');
+
+                using var stream = new MemoryStream();
+                mlContext.Data.SaveAsBinary(dataView, stream);
+
+                var dataview = new DataViewFile
+                {
+                    Size = stream.Length,
+                    Dataset = dataset,
+                    Data = stream.ToArray()
+                };
+
+                await _dbContext.DataViewFiles.AddAsync(dataview);
+                await _dbContext.SaveChangesAsync();
+
+                return Created("", null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error when uploading file");
+            }
+            finally
+            {
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+            }
+
+            return StatusCode(500, "Error when uploading file");
         }
 
 
@@ -276,8 +354,8 @@ namespace AIaaS.WebAPI.Controllers
             return Ok();
         }
 
-        [HttpPost("Preview")]
-        public IActionResult Preview([FromForm] IFormFile file)
+        [HttpPost("PreviewOld")]
+        public IActionResult PreviewOld([FromForm] IFormFile file)
         {
             //var file = Request.Form.Files[0];
             if (file is null)
@@ -295,7 +373,7 @@ namespace AIaaS.WebAPI.Controllers
             var rowIndex = 0;
             var MaxRows = 11;
             var records = new string[MaxRows][];
-            
+
             while (csv.Read())
             {
                 if (rowIndex >= MaxRows) break;
@@ -326,7 +404,7 @@ namespace AIaaS.WebAPI.Controllers
                 for (int i = 1; i < records.Length; i++)
                 {
                     //datetime, int, decimal, ,string
-                    var value = records[i][j];
+                    var value = records[i]?[j];
 
                     if (int.TryParse(value, out var valueAsInt))
                     {
@@ -352,7 +430,7 @@ namespace AIaaS.WebAPI.Controllers
                 switch (maxIndex)
                 {
                     case 0: columnSetting.Type = ColumnDataTypeEnum.Datetime.ToString(); break;
-                    case 1: columnSetting.Type = ColumnDataTypeEnum.Int.ToString(); break;
+                    case 1: //columnSetting.Type = ColumnDataTypeEnum.Int.ToString(); break;
                     case 2: columnSetting.Type = ColumnDataTypeEnum.Decimal.ToString(); break;
                     case 3: columnSetting.Type = ColumnDataTypeEnum.String.ToString(); break;
                 }
@@ -366,6 +444,98 @@ namespace AIaaS.WebAPI.Controllers
             return Ok(fileAnalysis);
         }
 
+        [HttpPost("Preview")]
+        public async Task<IActionResult> Preview([FromForm] IFormFile file)
+        {
+            var filePath = default(string);
+            try
+            {
+                if (file is null)
+                    return BadRequest("File is required");
+
+                var fileAnalysis = new FileAnalysisDto();
+                filePath = await SaveTempFile(file);
+
+                fileAnalysis.Header = GetHeader(file, fileAnalysis);
+                var labelColumn = fileAnalysis.Header.Last();
+
+                var mlContext = new MLContext();
+                var columnInference = mlContext.Auto().InferColumns(filePath, labelColumnName: labelColumn, groupColumns: false);
+                //fileAnalysis.Header = fileAnalysis.ColumnsSettings.Select(x => x.ColumnName).ToArray();
+
+                fileAnalysis.ColumnsSettings = columnInference.TextLoaderOptions.Columns.Select(x =>
+                      new ColumnSettingDto
+                      {
+                          ColumnName = x.Name,
+                          Include = true,
+                          Type = x.DataKind.ToString(),
+                      }
+                     ).ToList();
+
+                TextLoader loader = mlContext.Data.CreateTextLoader(columnInference.TextLoaderOptions);
+                IDataView data = loader.Load(filePath);
+
+                var MaxRows = 11;
+                var preview = data.Preview(maxRows: MaxRows);
+                var rowIndex = 0;
+
+                var records = new string[MaxRows][];
+
+                foreach (var row in preview.RowView)
+                {
+                    records[rowIndex] = new string[row.Values.Length];
+                    var values = row.Values.Select(x => x.Value).ToArray();
+                    var ColumnCollection = row.Values;
+
+                    for (int i = 0; i < row.Values.Length; i++)
+                    {
+                        records[rowIndex][i] = values[i]?.ToString() ?? "";
+                    }
+                    rowIndex++;
+                }
+
+                fileAnalysis.Data = records;
+
+                return Ok(fileAnalysis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error when generating file analysis");
+            }
+            finally
+            {
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+            }
+
+            return StatusCode(500, "Error when generating file analysis");
+        }
+
+        private string[]? GetHeader(IFormFile file, FileAnalysisDto fileAnalysis)
+        {
+            using var reader = file.OpenReadStream();
+            using var tr = new StreamReader(reader);
+            var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
+            csvConfiguration.Delimiter = ",";
+            csvConfiguration.HasHeaderRecord = true;
+            using var csv = new CsvReader(tr, csvConfiguration);
+            csv.Read();
+            csv.ReadHeader();
+            return csv.Context.Reader.HeaderRecord;
+        }
+
+        private async Task<string> SaveTempFile(IFormFile file)
+        {
+            var filePath = Path.GetTempPath() + Guid.NewGuid().ToString() + ".csv";
+            using var fileStream = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(fileStream);
+            await fileStream.FlushAsync();
+
+            return filePath;
+        }
+
         private void PP()
         {
             var ds = _dbContext.Datasets.Find(7);
@@ -377,7 +547,7 @@ namespace AIaaS.WebAPI.Controllers
             using var tr = new StreamReader(memStream);
             var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
             using var csv = new CsvReader(tr, csvConfiguration);
-            var readed = csv.Read();            
+            var readed = csv.Read();
         }
     }
 }

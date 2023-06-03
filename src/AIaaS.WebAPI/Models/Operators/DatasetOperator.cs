@@ -5,7 +5,6 @@ using AIaaS.WebAPI.Models.enums;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.ML;
-using Microsoft.ML.AutoML;
 using Microsoft.ML.Data;
 using System.Globalization;
 using System.Text.Json;
@@ -26,139 +25,57 @@ namespace AIaaS.WebAPI.Models.Operators
 
         public override async Task Execute(WorkflowContext context, WorkflowNodeDto root)
         {
-            try
+            var datasetId = root.GetParameterValue<int>("Dataset");
+
+            if (datasetId is null)
             {
-                var datasetIdValue = root.Data.Config.ElementAt(0).Value;
-                var selectedColumnsSerialized = root.Data.Config.ElementAt(1).Value?.ToString() ?? "";
-                var selectedColumns = JsonSerializer.Deserialize<IList<string>>(selectedColumnsSerialized);
-                int.TryParse(datasetIdValue?.ToString(), out var datasetId);
-
-                if (selectedColumns is null)
-                    throw new Exception("Selected columns not found");
-
-                var dataset = await _dbContext.Datasets.FindAsync(datasetId);
-                if (dataset is null)
-                    throw new Exception("Dataset not found");
-                             
-                await _dbContext.Entry(dataset).Collection(d => d.ColumnSettings).LoadAsync();
-                await _dbContext.Entry(dataset).Reference(x => x.DataViewFile).LoadAsync();
-
-                context.Dataset = dataset;
-                context.ColumnSettings = dataset.ColumnSettings.Where(x => selectedColumns.Contains(x.ColumnName, StringComparer.InvariantCultureIgnoreCase));
-                
-                if (!context.ColumnSettings.Any())
-                    throw new Exception("No columns were found");
-
-                if (dataset.DataViewFile is null)
-                    throw new Exception("DataViewFile not found");
-
-                var file = dataset.DataViewFile;
-
-                //TODO: check how to manage usings cos if I dispose IDataview cannot be processed
-                var memStream = new MemoryStream(file.Data);
-                var mss = new MultiStreamSourceFile(memStream);
-                var mlContext = new MLContext();
-                context.DataView = mlContext.Data.LoadFromBinary(mss);
-                var preview = context.DataView.Preview();
+                root.Error("Please select a dataset");
+                return;
             }
-            catch (Exception e)
+
+            var selectedColumns = root.GetParameterValue<string, IList<string>>("SelectedColumns", x => JsonSerializer.Deserialize<IList<string>>(x));
+
+            if (selectedColumns is null || !selectedColumns.Any())
             {
-                var ms = e.Message;
+                root.Error("Please select columns from dataset");
+                return;
             }
-        }
 
-        public  async Task Execute2(WorkflowContext context, WorkflowNodeDto root)
-        {
-            try
+            var dataset = await _dbContext.Datasets.FindAsync(datasetId);
+            if (dataset is null)
             {
-                var datasetIdValue = root.Data.Config.ElementAt(0).Value;
-                var selectedColumnsSerialized = root.Data.Config.ElementAt(1).Value?.ToString() ?? "";
-                var selectedColumns = JsonSerializer.Deserialize<IList<string>>(selectedColumnsSerialized);
-                int.TryParse(datasetIdValue?.ToString(), out var datasetId);
-
-                if (selectedColumns is null)
-                    throw new Exception("Selected columns not found");
-
-                var dataset = await _dbContext.Datasets.FindAsync(datasetId);
-                if (dataset is null)
-                    throw new Exception("Dataset not found");
-
-                await _dbContext.Entry(dataset).Collection(d => d.ColumnSettings).LoadAsync();
-                await _dbContext.Entry(dataset).Reference(x => x.FileStorage).LoadAsync();
-
-                var columnSettings = dataset.ColumnSettings.Where(x => selectedColumns.Contains(x.ColumnName, StringComparer.InvariantCultureIgnoreCase));
-
-                if (!columnSettings.Any())
-                    throw new Exception("No columns were found");
-
-                if (dataset.FileStorage is null)
-                    throw new Exception("File storage not found");
-
-                var file = dataset.FileStorage;
-
-                //TODO: check how to manage usings cos if I dispose IDataview cannot be processed
-                var memStream = new MemoryStream(file.Data);
-                var tr = new StreamReader(memStream);
-
-                var propertyTypes = columnSettings.Select(x => (x.ColumnName, x.Type.ToDataType()));
-                var rowType = ClassFactory.CreateType(propertyTypes);
-
-                var schemaDefinition = SchemaDefinition.Create(rowType);
-
-
-                var isGeneric = true;
-
-                if (isGeneric)
-                {
-                    var methodInfo = this.GetType().GetMethods().FirstOrDefault(x => x.Name == "NewMethod");
-                    var processMethod = methodInfo.MakeGenericMethod(rowType);
-                    var dataView = processMethod.Invoke(this, new object[] { context.MLContext, tr, schemaDefinition }) as IDataView;
-                    context.DataView = dataView;
-                }
-                else
-                {
-                    var isfile = false;
-                    if (isfile)
-                    {
-                        TextLoader.Column[] columns = new TextLoader.Column[] {
-                        new TextLoader.Column("TV",DataKind.Single,0),
-                        new TextLoader.Column("Radio",DataKind.Single,1),
-                        new TextLoader.Column("Newspaper",DataKind.Single,2),
-                        new TextLoader.Column("Sales",DataKind.Single,3),
-            };
-
-                        // STEP 1: Common data loading configuration
-                        //IDataView baseTrainingDataView = mlContext.Data.LoadFromTextFile<AdvertisingRow>(Dataset, hasHeader: true, separatorChar: ',');
-                        IDataView baseTrainingDataView = context.MLContext.Data.LoadFromTextFile("advertising.csv", columns, hasHeader: true, separatorChar: ',');
-                        context.DataView = baseTrainingDataView;
-
-                    }
-                    else
-                    {
-                        var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
-                        var csv = new CsvReader(tr, csvConfiguration);
-
-                        var records = csv.GetRecords<SalesRow>();
-
-                        var dataView = context.MLContext.Data.LoadFromEnumerable(records, schemaDefinition);
-                        context.DataView = dataView;
-                    }
-
-                    var asEnumerable = false;
-
-                    if (asEnumerable)
-                    {
-
-                        IEnumerable<SalesRow> salesRows = GetSalesAsEnumerable();
-                        var dataView = context.MLContext.Data.LoadFromEnumerable(salesRows, schemaDefinition);
-                        context.DataView = dataView;
-                    }
-                }
+                root.Error("Dataset not found");
+                return;
             }
-            catch (Exception e)
+
+            await _dbContext.Entry(dataset).Collection(d => d.ColumnSettings).LoadAsync();
+            await _dbContext.Entry(dataset).Reference(x => x.DataViewFile).LoadAsync();
+
+            context.Dataset = dataset;
+            context.ColumnSettings = dataset.ColumnSettings.Where(x => selectedColumns.Contains(x.ColumnName, StringComparer.InvariantCultureIgnoreCase));
+
+            if (!context.ColumnSettings.Any())
             {
-                var ms = e.Message;
+                root.Error("No columns were found");
+                return;
             }
+
+            if (dataset.DataViewFile is null)
+            {
+                root.Error("DataViewFile not found");
+                return;
+            }
+
+            var file = dataset.DataViewFile;
+
+            //TODO: check how to manage usings cos if I dispose IDataview cannot be processed
+            var memStream = new MemoryStream(file.Data);
+            var mss = new MultiStreamSourceFile(memStream);
+            var mlContext = new MLContext();
+            context.DataView = mlContext.Data.LoadFromBinary(mss);
+            context.InputOutputColumns = context.ColumnSettings.Select(x => new InputOutputColumnPair(x.ColumnName, x.ColumnName)).ToArray();
+            //var preview = context.DataView.Preview();
+            root.Success();
         }
 
         private IEnumerable<SalesRow> GetSalesAsEnumerable()

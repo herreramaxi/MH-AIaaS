@@ -15,7 +15,7 @@ namespace AIaaS.WebAPI.Services
             _workflowOperators = workflowOperators;
         }
 
-        public async Task<Result> Run(WorkflowGraphDto workflowGraphDto, Workflow workflow)
+        public async Task<Result<WorkflowGraphDto>> Run(WorkflowGraphDto workflowGraphDto, Workflow workflow)
         {
             var context = new WorkflowContext()
             {
@@ -23,9 +23,9 @@ namespace AIaaS.WebAPI.Services
                 Workflow = workflow
             };
 
-           await TraverseTreeDFS(workflowGraphDto.Root, context);
+            await TraverseTreeDFS(workflowGraphDto.Root, context);
 
-            return Result.Success();
+            return Result.Success(workflowGraphDto);
         }
 
         private async Task TraverseTreeDFS(WorkflowNodeDto? root, WorkflowContext context)
@@ -35,9 +35,20 @@ namespace AIaaS.WebAPI.Services
 
             var workflowOperator = _workflowOperators.FirstOrDefault(x => x.Type.Equals(root.Type, StringComparison.InvariantCultureIgnoreCase));
             if (workflowOperator is null)
-                throw new Exception($"Workflow operator not found for type {root.Type}");
+            {
+                root.Error($"Workflow operator not found for type {root.Type}");
+                return;
+            }
 
-            await workflowOperator.Execute(context, root);
+            try
+            {
+                await workflowOperator.Execute(context, root);
+            }
+            catch (Exception ex)
+            {
+                root.Error($"Error when executing operator {root.Type}");
+                return;
+            }
 
             await TraverseTreeDFS(root.Children?.FirstOrDefault(), context);
         }

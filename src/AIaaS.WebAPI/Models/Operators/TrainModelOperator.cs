@@ -1,7 +1,6 @@
 ﻿using AIaaS.WebAPI.Data;
 using AIaaS.WebAPI.Models.enums;
 using Microsoft.ML;
-using Microsoft.ML.Transforms;
 
 namespace AIaaS.WebAPI.Models.Operators
 {
@@ -19,59 +18,65 @@ namespace AIaaS.WebAPI.Models.Operators
 
         public override async Task Execute(WorkflowContext context, Dtos.WorkflowNodeDto root)
         {
-            try
+            var labelColumn = root.GetParameterValue("Label");
+
+            if (string.IsNullOrEmpty(labelColumn))
             {
-                _dbContext.Entry(context.Workflow).Reference(x => x.MLModel).LoadAsync();
+                root.Error("Please configure a label column");
+                return;
+            }
 
-                var labelColumn = root.Data.Config.FirstOrDefault(x => x.Name.Equals("Label")).Value.ToString();
-                var features = context.ColumnSettings.Where(x => !x.ColumnName.Equals(labelColumn, StringComparison.InvariantCultureIgnoreCase)).Select(x => x.ColumnName).ToArray();
-                var mlContext = context.MLContext;
+            _dbContext.Entry(context.Workflow).Reference(x => x.MLModel).LoadAsync();
 
-                var inputOutputColumns = context.ColumnSettings.Select(x => new InputOutputColumnPair(x.ColumnName, x.ColumnName)).ToArray();
-                var dataProcessPipeline = mlContext.Transforms.NormalizeMeanVariance(inputOutputColumns);
+            context.LabelColumn = labelColumn;
+            var features = context.ColumnSettings.Where(x => !x.ColumnName.Equals(labelColumn, StringComparison.InvariantCultureIgnoreCase)).Select(x => x.ColumnName).ToArray();
+            var mlContext = context.MLContext;
+            var estimator = mlContext.Transforms.NormalizeMeanVariance(context.InputOutputColumns);
 
-                var est = dataProcessPipeline.Append(mlContext.Transforms.Concatenate("Features", features));
+            context.EstimatorChain = context.EstimatorChain is not null ?
+                context.EstimatorChain.Append(estimator) :
+                estimator;
 
+            var transformer = context.EstimatorChain.Fit(context.DataView);
+            var dataview = transformer.Transform(context.DataView);
+            var preview = dataview.Preview(50);
 
-                //var dataProcessPipeline = mlContext.Transforms.NormalizeMeanVariance(outputColumnName: "TV")
-                //        .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: "Radio"))
-                //        .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: "Newspaper"))
-                //        .Append(mlContext.Transforms.Concatenate("Features", "TV", "Radio", "Newspaper"));
+            context.EstimatorChain = context.EstimatorChain is not null ? context.EstimatorChain.Append(estimator) : estimator;
 
-                var trainer = mlContext.Regression.Trainers.Sdca(labelColumnName: labelColumn, featureColumnName: "Features");
-                var trainingPipeline = est.Append(trainer);
-                var trainedModel = trainingPipeline.Fit(context.TrainingData);
-                context.TrainedModel = trainedModel;
-                context.Trainer = trainer;
+            context.EstimatorChain = context.EstimatorChain.Append(mlContext.Transforms.Concatenate("Features", features));
 
-                using var stream = new MemoryStream();
-                mlContext.Model.Save(trainedModel, context.TrainingData.Schema, stream);
-                stream.Seek(0, SeekOrigin.Begin);
+            var trainer = mlContext.Regression.Trainers.Sdca(labelColumnName: labelColumn, featureColumnName: "Features");
+            var trainingPipeline = context.EstimatorChain.Append(trainer);
+            var trainedModel = trainingPipeline.Fit(context.TrainingData);
+            context.TrainedModel = trainedModel;
+            context.Trainer = trainer;
 
-                if (context.Workflow.MLModel is null)
+            using var stream = new MemoryStream();
+            mlContext.Model.Save(trainedModel, context.TrainingData.Schema, stream);
+            stream.Seek(0, SeekOrigin.Begin);
+
+            if (context.Workflow.MLModel is null)
+            {
+                var mlModel = new MLModel
                 {
-                    var mlModel = new MLModel
-                    {
-                        Data = stream.ToArray(),
-                        Size = stream.Length,
-                        Workflow = context.Workflow
-                    };
+                    Data = stream.ToArray(),
+                    Size = stream.Length,
+                    Workflow = context.Workflow
+                };
 
-                    await _dbContext.MLModels.AddAsync(mlModel);                  
-                }
-                else {
-
-                    context.Workflow.MLModel.Data = stream.ToArray();
-                    context.Workflow.MLModel.Size = stream.Length;
-                }
-
-                await _dbContext.SaveChangesAsync();
-                //mlContext.Model.Save(trainedModel, context.TrainingData.Schema, "model.zip");
+                await _dbContext.MLModels.AddAsync(mlModel);
             }
-            catch (Exception ex)
+            else
             {
-                var msg = ex.Message;
+
+                context.Workflow.MLModel.Data = stream.ToArray();
+                context.Workflow.MLModel.Size = stream.Length;
             }
+
+            await _dbContext.SaveChangesAsync();
+            //mlContext.Model.Save(trainedModel, context.TrainingData.Schema, "model.zip");
+
+            root.Success();
         }
     }
 }

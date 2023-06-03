@@ -7,17 +7,25 @@ namespace AIaaS.WebAPI.ExtensionMethods
     {
         public static DataKind ToDataKind(this string typeAsString)
         {
-            Enum.TryParse<ColumnDataTypeEnum>(typeAsString, out var columnDataTypeEnum);
+            Enum.TryParse<DataKind>(typeAsString, out var columnDataTypeEnum);
 
-            switch (columnDataTypeEnum)
-            {
-                case ColumnDataTypeEnum.String: return DataKind.String;
-                case ColumnDataTypeEnum.Int: return DataKind.Int32;
-                case ColumnDataTypeEnum.Datetime: return DataKind.DateTime;
-                case ColumnDataTypeEnum.Decimal: return DataKind.Double;
-                default: return DataKind.String;
-            }
+            return columnDataTypeEnum;
         }
+
+
+        //public static DataKind ToDataKind(this string typeAsString)
+        //{
+        //    Enum.TryParse<ColumnDataTypeEnum>(typeAsString, out var columnDataTypeEnum);
+
+        //    switch (columnDataTypeEnum)
+        //    {
+        //        case ColumnDataTypeEnum.String: return DataKind.String;
+        //        case ColumnDataTypeEnum.Int: return DataKind.Int32;
+        //        case ColumnDataTypeEnum.Datetime: return DataKind.DateTime;
+        //        case ColumnDataTypeEnum.Decimal: return DataKind.Double;
+        //        default: return DataKind.String;
+        //    }
+        //}
 
         public static Type ToDataType(this string typeAsString)
         {

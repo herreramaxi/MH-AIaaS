@@ -61,7 +61,7 @@ namespace ConsoleAppTest
        
             // STEP 1: Common data loading configuration
             //IDataView baseTrainingDataView = mlContext.Data.LoadFromTextFile<AdvertisingRow>(Dataset, hasHeader: true, separatorChar: ',');
-            IDataView baseTrainingDataView = mlContext.Data.LoadFromTextFile(Dataset, columns, hasHeader: true, separatorChar: ',');
+            IDataView baseTrainingDataView = mlContext.Data.LoadFromTextFile(Dataset, columns, hasHeader: true, separatorChar: ',');            
             TrainTestData trainTestSplit = mlContext.Data.TrainTestSplit(baseTrainingDataView, testFraction: 0.2);
             IDataView trainingData = trainTestSplit.TrainSet;
             IDataView testData = trainTestSplit.TestSet;

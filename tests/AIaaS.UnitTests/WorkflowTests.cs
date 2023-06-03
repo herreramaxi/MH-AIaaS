@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using Xunit.Abstractions;
 using static AIaaS.WebAPI.Models.Operators.CleanDataOperator;
 using static Microsoft.ML.DataOperationsCatalog;
+using Microsoft.ML.Transforms;
 
 namespace AIaaS.UnitTests
 {
@@ -39,6 +40,32 @@ namespace AIaaS.UnitTests
 
 
 
+        }
+
+        [Fact]
+        public async Task ReadFromTextFile()
+        {
+            var dataPath = "advertisingWithMissingValues.csv";
+            var mlContext = new MLContext();
+            ColumnInferenceResults columnInference = mlContext.Auto().InferColumns(dataPath, labelColumnName: "Sales",groupColumns: false);
+            TextLoader loader = mlContext.Data.CreateTextLoader(columnInference.TextLoaderOptions);
+            IDataView data = loader.Load(dataPath);
+            var preview = data.Preview();
+
+
+            using var reader = new FileStream(dataPath, FileMode.Open, FileAccess.Read);
+            using var tr = new StreamReader(reader);
+            var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
+            csvConfiguration.Delimiter = ",";
+            csvConfiguration.HasHeaderRecord = true;
+            using var csv = new CsvReader(tr, csvConfiguration);
+            csv.Read();
+            csv.ReadHeader();
+            string[] headerRow = csv.Context.Reader.HeaderRecord;
+            //var options = new TextLoader.Options { Separators = new[] { ',' }, HasHeader = true };
+            //var textLoader = mlContext.Data.CreateTextLoader(options);
+            //var data1 = textLoader.Load(dataPath);
+            //var preview1 = data.Preview();
         }
 
         [Fact]
@@ -174,7 +201,7 @@ namespace AIaaS.UnitTests
             //    mlContext.Data.SaveAsBinary(baseTrainingDataView, stream);
 
             var stream = new MemoryStream();
-                mlContext.Data.SaveAsBinary(baseTrainingDataView, stream);
+            mlContext.Data.SaveAsBinary(baseTrainingDataView, stream);
 
             stream.Seek(0, SeekOrigin.Begin);
             var mss = new MultiStreamSourceFile(stream);
@@ -263,9 +290,17 @@ namespace AIaaS.UnitTests
         }
 
         [Fact]
-        public void Test3() {
+        public void Test3()
+        {
             var mlContext = new MLContext();
             ColumnInferenceResults columnInference = mlContext.Auto().InferColumns("advertising.csv", labelColumnName: "Sales", groupColumns: false);
+        }
+
+        [Fact]
+        public void Test3_1()
+        {
+            var mlContext = new MLContext();
+            ColumnInferenceResults columnInference = mlContext.Auto().InferColumns("advertisingWithMissingValues.csv", labelColumnName: "Sales", groupColumns: false);
         }
 
         [Fact]
@@ -290,6 +325,84 @@ namespace AIaaS.UnitTests
             var dataFrame3 = dataFrame.Info();
         }
 
+        [Fact]
+        public async  void Test6() {
+            var dataset = await _dbContext.Datasets.FindAsync(1030);
+            if (dataset is null)
+                throw new Exception("Dataset not found");
+
+            await _dbContext.Entry(dataset).Collection(d => d.ColumnSettings).LoadAsync();
+            await _dbContext.Entry(dataset).Reference(x => x.DataViewFile).LoadAsync();
+
+            var file = dataset.DataViewFile;
+
+            //TODO: check how to manage usings cos if I dispose IDataview cannot be processed
+            var memStream = new MemoryStream(file.Data);
+            var mss = new MultiStreamSourceFile(memStream);
+            var context = new WorkflowContext();
+            var mlContext = new MLContext();
+            context.DataView = mlContext.Data.LoadFromBinary(mss);
+            context.InputOutputColumns = dataset.ColumnSettings.Select(x => new InputOutputColumnPair(x.ColumnName, x.ColumnName)).ToArray();
+
+            var dataview = context.DataView;
+            var preview0 = dataview.Preview();
+
+            var mlContext1 = new MLContext();
+
+            var pipeline = mlContext1.Transforms.ReplaceMissingValues(context.InputOutputColumns, Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Mean);
+            var transformer = pipeline.Fit(dataview);
+           var dataview1  =  transformer.Transform(dataview);
+            var preview1 = dataview1.Preview();
+
+            var mlContext2 = new MLContext();
+            var pipeline2  = mlContext2.Transforms.NormalizeMeanVariance(context.InputOutputColumns);
+            var transformer2 = pipeline2.Fit(dataview1);
+            var dataview2 = transformer.Transform(dataview1);
+            var preview2 = dataview2.Preview();
+        }
+
+        [Fact]
+        public void Test7() {
+            TextLoader.Column[] columns = new TextLoader.Column[] {
+                new TextLoader.Column("TV",DataKind.Single,0),
+            new TextLoader.Column("Radio",DataKind.Single,1),
+            new TextLoader.Column("Newspaper",DataKind.Single,2),
+             new TextLoader.Column("Sales",DataKind.Single,3),
+            };
+            var inputOutputColumns = columns.Select(x => new InputOutputColumnPair(x.Name, x.Name)).ToArray();
+            var mlContext = new MLContext();
+            var options = new TextLoader.Options()
+            {
+                Separators = new[] { ',' },
+                HasHeader = true,
+                Columns = columns,
+                MissingRealsAsNaNs = true,
+            };
+            IDataView dataView0 = mlContext.Data.LoadFromTextFile("advertisingWithMissingValues.csv", options: options);
+            var preview0 = dataView0.Preview();
+
+            var inputOutputColumns2 = columns.Select(x => new InputOutputColumnPair(x.Name +"_Missing", x.Name)).ToArray();
+
+            //var pipeline = mlContext.Transforms.IndicateMissingValues(inputOutputColumns2);
+
+            var mlContext1 = new MLContext();
+            var pipeline = mlContext1.Transforms.ReplaceMissingValues(inputOutputColumns, Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Mean);
+            var transformer = pipeline.Fit(dataView0);
+            var dataview1 = transformer.Transform(dataView0);
+            var preview1 = dataview1.Preview();
+
+
+            var mlContext2 = new MLContext();
+
+            var pipeline2 = mlContext1.Transforms.NormalizeMeanVariance(inputOutputColumns);
+            ////var pipeline = mlContext1.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.TV))
+            ////                .Append(mlContext1.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Radio)))
+            ////                .Append(mlContext1.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Newspaper)))
+            ////                 .Append(mlContext1.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Sales)));
+
+            var dataview2 = pipeline.Fit(dataview1).Transform(dataview1);
+            var preview2 = dataview2.Preview();
+        }
         public IDataView NewMethod<T>(MLContext mlContext, StreamReader tr, SchemaDefinition schemaDefinition) where T : class
         {
             var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
@@ -348,7 +461,7 @@ namespace AIaaS.UnitTests
 
             public string GetPathOrNull(int index)
             {
-               return string.Empty;
+                return string.Empty;
             }
 
             public Stream Open(int index)

@@ -32,6 +32,9 @@
     <None Update="advertising.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="advertisingWithMissingValues.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="taxi-fare-full.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

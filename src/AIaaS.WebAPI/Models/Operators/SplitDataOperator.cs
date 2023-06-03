@@ -1,19 +1,28 @@
-﻿using AIaaS.WebAPI.Models.enums;
+﻿using AIaaS.WebAPI.ExtensionMethods;
+using AIaaS.WebAPI.Models.Dtos;
+using AIaaS.WebAPI.Models.enums;
 
 namespace AIaaS.WebAPI.Models.Operators
 {
     [Operator("Split Data", OperatorType.Split, 3)]
-    [OperatorParameter("Variable Name", "The name of the new or existing variable", "text")]
-    [OperatorParameter("Value", "Javascript expression for the value", "text")]
+    [OperatorParameter("Test Fraction", "The fraction of data to go into the test set", "text")] 
     public class SplitDataOperator : WorkflowOperatorAbstract
     {
-        public override Task Execute(WorkflowContext context, Dtos.WorkflowNodeDto root)
+        public override Task Execute(WorkflowContext context, WorkflowNodeDto root)
         {
             var mlContext = context.MLContext;
-            var trainTestSplit = mlContext.Data.TrainTestSplit(context.DataView, testFraction: 0.2);
+            
+            var fraction = root.GetParameterValue<double>("Test Fraction");
+
+            if (fraction is null || fraction == 0) {
+                root.Error("Please enter a 'Test Fraction' greater than zero");
+                return Task.CompletedTask;
+            }
+
+            var trainTestSplit = mlContext.Data.TrainTestSplit(context.DataView, testFraction: (double)fraction);
             context.TrainingData = trainTestSplit.TrainSet;
             context.TestData = trainTestSplit.TestSet;
-
+            root.Success();
             return Task.CompletedTask;
         }
     }

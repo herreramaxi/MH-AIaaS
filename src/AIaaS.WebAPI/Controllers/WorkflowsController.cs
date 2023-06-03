@@ -133,32 +133,35 @@ namespace AIaaS.WebAPI.Controllers
 
 
         [HttpPost("run")]
-        public async Task<IActionResult> Run([FromServices] IWorkflowService  workflowService, WorkflowDto workflowDto)
+        public async Task<IActionResult> Run([FromServices] IWorkflowService workflowService, WorkflowDto workflowDto)
         {
             var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
 
-            if (workflow is null) {
+            if (workflow is null)
+            {
                 return NotFound("Workflow not found");
             }
 
             if (string.IsNullOrEmpty(workflowDto?.Root))
                 return BadRequest("Workflow is required");
 
-            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true};
+            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
-           
+
             if (workflowGraphDto is null)
             {
                 return BadRequest("Not able to process workflow");
             }
 
-           await workflowService.Run(workflowGraphDto, workflow);
+            var serviceResult = await workflowService.Run(workflowGraphDto, workflow);
 
-            //if (workflowGraphDto.Root.Type?.Equals("dataset", StringComparison.CurrentCultureIgnoreCase) != true)
-            //    return BadRequest("Dataset node not found");
+            if (serviceResult.IsSuccess)
+            {
+                workflowDto.Root = JsonSerializer.Serialize(serviceResult.Value, new JsonSerializerOptions { PropertyNamingPolicy=  JsonNamingPolicy.CamelCase});
+                return Ok(workflowDto);
+            }
 
-         
-            return Ok();
+            return StatusCode(500, "Error when running the ML workflow");
         }
 
     }
