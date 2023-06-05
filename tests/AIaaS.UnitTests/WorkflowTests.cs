@@ -21,8 +21,7 @@ namespace AIaaS.UnitTests
 {
     public class WorkflowTests : IClassFixture<TestDatabaseFixture>, IDisposable
     {
-        public TestDatabaseFixture Fixture { get; }
-        private EfContext _dbContext;
+        public TestDatabaseFixture Fixture { get; }private EfContext _dbContext;
         private readonly ITestOutputHelper _testOutputHelper;
 
         public WorkflowTests(TestDatabaseFixture fixture, ITestOutputHelper testOutputHelper)
@@ -73,14 +72,14 @@ namespace AIaaS.UnitTests
         {
             MLContext mlContext = new MLContext(seed: 0);
             TextLoader.Column[] columns = new TextLoader.Column[] {
-                new TextLoader.Column("TV",DataKind.Single,0),
+                new TextLoader.Column("Tv",DataKind.Single,0),
             new TextLoader.Column("Radio",DataKind.Single,1),
             new TextLoader.Column("Newspaper",DataKind.Single,2),
              new TextLoader.Column("Sales",DataKind.Single,3),
             };
 
             var propertyTypes = new List<(string, Type)> {
-            new ("TV", typeof(float)),
+            new ("Tv", typeof(float)),
             new ("Radio", typeof(float)),
             new ("Newspaper", typeof(float)),
             new ("Sales", typeof(float))
@@ -103,10 +102,10 @@ namespace AIaaS.UnitTests
 
             // STEP 2: Common data process configuration with pipeline data transformations
             var dataProcessPipeline = mlContext.Transforms.CopyColumns(outputColumnName: "Label", inputColumnName: nameof(AdvertisingRow.Sales))
-                            .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.TV)))
+                            .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Tv)))
                             .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Radio)))
                             .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Newspaper)))
-                            .Append(mlContext.Transforms.Concatenate("Features", nameof(AdvertisingRow.TV), nameof(AdvertisingRow.Radio), nameof(AdvertisingRow.Newspaper)));
+                            .Append(mlContext.Transforms.Concatenate("Features", nameof(AdvertisingRow.Tv), nameof(AdvertisingRow.Radio), nameof(AdvertisingRow.Newspaper)));
 
 
             // STEP 3: Set the training algorithm, then create and config the modelBuilder - Selected Trainer (SDCA Regression algorithm)                            
@@ -132,7 +131,7 @@ namespace AIaaS.UnitTests
 
             var taxiTripSample = new AdvertisingRow()
             {
-                TV = 232,
+                Tv = 232,
                 Radio = 8,
                 Newspaper = 8,
                 Sales = 0 // To predict. Actual/Observed = 15.5
@@ -216,10 +215,10 @@ namespace AIaaS.UnitTests
 
             // STEP 2: Common data process configuration with pipeline data transformations
             var dataProcessPipeline = mlContext.Transforms.CopyColumns(outputColumnName: "Label", inputColumnName: nameof(AdvertisingRow.Sales))
-                            .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.TV)))
+                            .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Tv)))
                             .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Radio)))
                             .Append(mlContext.Transforms.NormalizeMeanVariance(outputColumnName: nameof(AdvertisingRow.Newspaper)))
-                            .Append(mlContext.Transforms.Concatenate("Features", nameof(AdvertisingRow.TV), nameof(AdvertisingRow.Radio), nameof(AdvertisingRow.Newspaper)));
+                            .Append(mlContext.Transforms.Concatenate("Features", nameof(AdvertisingRow.Tv), nameof(AdvertisingRow.Radio), nameof(AdvertisingRow.Newspaper)));
 
 
             // STEP 3: Set the training algorithm, then create and config the modelBuilder - Selected Trainer (SDCA Regression algorithm)                            
@@ -245,7 +244,7 @@ namespace AIaaS.UnitTests
 
             var taxiTripSample = new AdvertisingRow()
             {
-                TV = 232,
+                Tv = 232,
                 Radio = 8,
                 Newspaper = 8,
                 Sales = 0 // To predict. Actual/Observed = 15.5
@@ -320,6 +319,7 @@ namespace AIaaS.UnitTests
         [Fact]
         public void Test5()
         {
+            
             var dataFrame = DataFrame.LoadCsv("advertising.csv");
             var dataFrame2 = dataFrame.Description();
             var dataFrame3 = dataFrame.Info();
@@ -474,5 +474,24 @@ namespace AIaaS.UnitTests
                 throw new NotImplementedException();
             }
         }
+
+        public class AdvertisingRow
+        {
+            [LoadColumn(0)]
+            public float Tv;
+            [LoadColumn(1)]
+            public float Radio;
+            [LoadColumn(2)]
+            public float Newspaper;
+            [LoadColumn(3)]
+            public float Sales;
+        }
+
+        public class AdvertisingRowPrediction
+        {
+            [ColumnName("Score")]
+            public float Sales;
+        }
+
     }
 }

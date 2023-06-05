@@ -1,5 +1,4 @@
-﻿using AIaaS.WebAPI.ExtensionMethods;
-using AIaaS.WebAPI.Models.Dtos;
+﻿using AIaaS.WebAPI.Models.Dtos;
 using AIaaS.WebAPI.Models.enums;
 
 namespace AIaaS.WebAPI.Models.Operators

@@ -304,8 +304,15 @@ namespace AIaaS.WebAPI.Controllers
 
                 var mlContext = new MLContext();
                 var columns = dataset.ColumnSettings.Select((x, index) => new TextLoader.Column(x.ColumnName, x.Type.ToDataKind(), index)).ToArray();
-                //TODO: add options here
-                var dataView = mlContext.Data.LoadFromTextFile(filePath, columns, hasHeader: true, separatorChar: ',');
+                var options = new TextLoader.Options
+                {
+                    HasHeader = true,
+                    MissingRealsAsNaNs = true,
+                    Separators = new[] { ',' },
+                    Columns = columns
+                };
+          
+                var dataView = mlContext.Data.LoadFromTextFile(filePath, options: options);
 
                 using var stream = new MemoryStream();
                 mlContext.Data.SaveAsBinary(dataView, stream);

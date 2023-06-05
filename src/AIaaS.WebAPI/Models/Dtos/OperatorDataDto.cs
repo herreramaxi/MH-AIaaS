@@ -6,5 +6,6 @@
         public IList<OperatorConfigurationDto> Config { get; set; }
         public bool IsValid { get; set; }
         public string ValidationMessage { get; set; }
+        public IDictionary<string,object> Parameters { get; set; }
     }
 }

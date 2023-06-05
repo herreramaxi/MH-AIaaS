@@ -26,24 +26,21 @@ namespace AIaaS.WebAPI.Models.Operators
                 return;
             }
 
-            _dbContext.Entry(context.Workflow).Reference(x => x.MLModel).LoadAsync();
+            if (!context.ColumnSettings.Any())
+            {
+                root.Error("No columns were found, please select columns on dataset operator");
+                return;
+            }
+
+            await _dbContext.Entry(context.Workflow).Reference(x => x.MLModel).LoadAsync();
 
             context.LabelColumn = labelColumn;
             var features = context.ColumnSettings.Where(x => !x.ColumnName.Equals(labelColumn, StringComparison.InvariantCultureIgnoreCase)).Select(x => x.ColumnName).ToArray();
             var mlContext = context.MLContext;
-            var estimator = mlContext.Transforms.NormalizeMeanVariance(context.InputOutputColumns);
 
             context.EstimatorChain = context.EstimatorChain is not null ?
-                context.EstimatorChain.Append(estimator) :
-                estimator;
-
-            var transformer = context.EstimatorChain.Fit(context.DataView);
-            var dataview = transformer.Transform(context.DataView);
-            var preview = dataview.Preview(50);
-
-            context.EstimatorChain = context.EstimatorChain is not null ? context.EstimatorChain.Append(estimator) : estimator;
-
-            context.EstimatorChain = context.EstimatorChain.Append(mlContext.Transforms.Concatenate("Features", features));
+                context.EstimatorChain.Append(mlContext.Transforms.Concatenate("Features", features)) :
+                mlContext.Transforms.Concatenate("Features", features);
 
             var trainer = mlContext.Regression.Trainers.Sdca(labelColumnName: labelColumn, featureColumnName: "Features");
             var trainingPipeline = context.EstimatorChain.Append(trainer);

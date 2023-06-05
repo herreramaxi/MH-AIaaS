@@ -1,6 +1,5 @@
 ﻿using AIaaS.WebAPI.Models.enums;
 using Microsoft.ML;
-using Microsoft.ML.Data;
 
 namespace AIaaS.WebAPI.Models.Operators
 {
@@ -17,58 +16,24 @@ namespace AIaaS.WebAPI.Models.Operators
         }
         public override async Task Execute(WorkflowContext context, Dtos.WorkflowNodeDto root)
         {
-            try
+            if (context.InputOutputColumns is null || !context.InputOutputColumns.Any())
             {
-                var mlContext = context.MLContext;
-                var estimator = mlContext.Transforms.ReplaceMissingValues(context.InputOutputColumns, Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Mean);
-
-                context.EstimatorChain = context.EstimatorChain is not null ?
-                    context.EstimatorChain.Append(estimator) :
-                    estimator;
-
-                var transformer = context.EstimatorChain.Fit(context.DataView);
-                var dataview = transformer.Transform(context.DataView);
-                var preview = dataview.Preview(50);
+                root.Error("No selected columns detected on pipeline, please select columns on dataset operator");
+                return;
             }
-            catch (Exception ex)
-            {
-                var mes = ex.Message;
-                _logger.LogError((EventId)1, ex, ex.Message);
-            }
-        }
 
+            var mlContext = context.MLContext;
+            var estimator = mlContext.Transforms.ReplaceMissingValues(context.InputOutputColumns, Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Mean);
 
-        public void PrintRegressionMetrics(string name, RegressionMetrics metrics)
-        {
+            context.EstimatorChain = context.EstimatorChain is not null ?
+                context.EstimatorChain.Append(estimator) :
+                estimator;
 
-            _logger.LogInformation($"*************************************************");
-            _logger.LogInformation($"*       Metrics for {name} regression model      ");
-            _logger.LogInformation($"*------------------------------------------------");
-            _logger.LogInformation($"*       LossFn:        {metrics.LossFunction:0.##}");
-            _logger.LogInformation($"*       R2 Score:      {metrics.RSquared:0.##}");
-            _logger.LogInformation($"*       Absolute loss: {metrics.MeanAbsoluteError:#.##}");
-            _logger.LogInformation($"*       Squared loss:  {metrics.MeanSquaredError:#.##}");
-            _logger.LogInformation($"*       RMS loss:      {metrics.RootMeanSquaredError:#.##}");
-            _logger.LogInformation($"*************************************************");
-        }
+            //var transformer = context.EstimatorChain.Fit(context.DataView);
+            //var dataview = transformer.Transform(context.DataView);
+            //var preview = dataview.Preview(50);
 
-        public class AdvertisingRow
-        {
-            [LoadColumn(0)]
-            public float TV;
-            [LoadColumn(1)]
-            public float Radio;
-            [LoadColumn(2)]
-            public float Newspaper;
-            [LoadColumn(3)]
-            public float Sales;
-        }
-
-        public class AdvertisingRowPrediction
-        {
-            [ColumnName("Score")]
-            public float Sales;
-        }
-
+            root.Success();
+        }     
     }
 }

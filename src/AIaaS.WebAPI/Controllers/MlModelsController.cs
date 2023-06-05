@@ -1,6 +1,7 @@
 ﻿using AIaaS.WebAPI.Data;
 using AIaaS.WebAPI.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -30,7 +31,7 @@ namespace AIaaS.WebAPI.Controllers
         // GET: api/<ModelsController>
         [HttpGet]
         public IEnumerable<MlModelDto> Get()
-        {      
+        {
             return _models;
         }
 
@@ -66,6 +67,14 @@ namespace AIaaS.WebAPI.Controllers
             _models.Remove(model);
 
             return Ok();
+        }
+
+        [HttpGet("getModelMetrics/{id}")]
+        public async Task<IActionResult> GetModelMetrics(int id)
+        {
+            var metrics = await _dbContext.ModelMetrics.FindAsync(id);
+
+            return metrics is null ? NotFound() : Ok(metrics);
         }
     }
 }

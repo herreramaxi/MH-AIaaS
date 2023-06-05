@@ -7,5 +7,6 @@
         public Workflow? Workflow { get; set; }
         public long Size { get; set; }
         public byte[] Data { get; set; }
+        public ModelMetrics? ModelMetrics { get; set; }
     }
 }

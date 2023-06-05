@@ -1,7 +1,9 @@
 ﻿using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.Models.Dtos;
 using AIaaS.WebAPI.Models.enums;
 using Microsoft.ML;
 using Microsoft.ML.Data;
+using System.Text.Json;
 
 namespace AIaaS.WebAPI.Models.Operators
 {
@@ -24,22 +26,58 @@ namespace AIaaS.WebAPI.Models.Operators
             //await _dbContext.Entry(workflow).Reference(x=> x.MLModel).LoadAsync();            
             //using var memStream = new MemoryStream(workflow.MLModel.Data);
             //context.TrainedModel = context.MLContext.Model.Load(memStream, out var inputSchema);
-            if (string.IsNullOrEmpty(context.LabelColumn)) {
+            if (string.IsNullOrEmpty(context.LabelColumn))
+            {
                 root.Error("No label column found on the pipeline, please select a clabel column from a 'Train Model' operator");
                 return;
             }
 
             IDataView predictions = context.TrainedModel.Transform(context.TestData);
             var metrics = context.MLContext.Regression.Evaluate(predictions, labelColumnName: context.LabelColumn, scoreColumnName: "Score");
+            var modelMetrics = new RegressionMetricsDto
+            {
+                LossFunction = metrics.LossFunction,
+                MeanAbsoluteError = metrics.MeanAbsoluteError,
+                MeanSquaredError = metrics.MeanSquaredError,
+                RootMeanSquaredError = metrics.RootMeanSquaredError,
+                RSquared = metrics.RSquared
+            };
+            var metricsSerialized = JsonSerializer.Serialize(modelMetrics);
 
             PrintRegressionMetrics(context.Trainer.ToString(), metrics);
 
+            if (context.Workflow.MLModel is null)
+            {
+                root.Error("Model not found");
+                return;
+            }
+
+            await _dbContext.Entry(context.Workflow.MLModel)
+                .Reference(x => x.ModelMetrics)
+                .LoadAsync();
+
+            if (context.Workflow.MLModel.ModelMetrics is null)
+            {
+                context.Workflow.MLModel.ModelMetrics = new ModelMetrics
+                {
+                    MetricType = MetricTypeEnum.Regression,
+                    Data = metricsSerialized
+                };
+            }
+            else
+            {
+                context.Workflow.MLModel.ModelMetrics.MetricType = MetricTypeEnum.Regression;
+                context.Workflow.MLModel.ModelMetrics.Data = metricsSerialized;
+            }
+            await _dbContext.SaveChangesAsync();
+
             root.Success();
+            root.Data.Parameters = new Dictionary<string, object>();
+            root.Data.Parameters.Add("ModelMetricsId", context.Workflow.MLModel.ModelMetrics.Id);
         }
 
         public void PrintRegressionMetrics(string name, RegressionMetrics metrics)
         {
-
             _logger.LogInformation($"*************************************************");
             _logger.LogInformation($"*       Metrics for {name} regression model      ");
             _logger.LogInformation($"*------------------------------------------------");

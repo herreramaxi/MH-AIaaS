@@ -20,6 +20,7 @@ namespace AIaaS.WebAPI.Data
         public DbSet<Workflow> Workflows { get; set; }
         public DbSet<DataViewFile> DataViewFiles { get; set; }
         public DbSet<MLModel> MLModels { get; set; }
+        public DbSet<ModelMetrics> ModelMetrics { get; set; }
 
         //protected override void OnConfiguring(DbContextOptionsBuilder options)
         //=> options.UseSqlServer($"Data Source={DbPath}");
