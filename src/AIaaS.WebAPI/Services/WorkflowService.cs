@@ -20,6 +20,20 @@ namespace AIaaS.WebAPI.Services
             var context = new WorkflowContext()
             {
                 MLContext = new MLContext(seed: 0),
+                Workflow = workflow,
+                RunWorkflow = true
+            };
+
+            await TraverseTreeDFS(workflowGraphDto.Root, context);
+
+            return Result.Success(workflowGraphDto);
+        }
+
+        public async Task<Result<WorkflowGraphDto>> Validate(WorkflowGraphDto workflowGraphDto, Workflow workflow)
+        {
+            var context = new WorkflowContext()
+            {
+                MLContext = new MLContext(seed: 0),
                 Workflow = workflow
             };
 
@@ -36,21 +50,31 @@ namespace AIaaS.WebAPI.Services
             var workflowOperator = _workflowOperators.FirstOrDefault(x => x.Type.Equals(root.Type, StringComparison.InvariantCultureIgnoreCase));
             if (workflowOperator is null)
             {
-                root.Error($"Workflow operator not found for type {root.Type}");
+                root.SetAsFailed($"Workflow operator not found for type {root.Type}");
                 return;
             }
+
+            var child = root.Children?.FirstOrDefault();
 
             try
             {
-                await workflowOperator.Execute(context, root);
+                workflowOperator.Preprocessing(context, root);
+                await workflowOperator.Hydrate(context, root);
+                workflowOperator.PropagateDatasetColumns(context, root, child);
+                var isValid = workflowOperator.Validate(context, root);
+
+                if (context.RunWorkflow && isValid)
+                {
+                    await workflowOperator.Run(context, root);
+                }
             }
             catch (Exception ex)
             {
-                root.Error($"Error when executing operator {root.Type}");
+                root.SetAsFailed($"Error when executing operator {root.Type}");
                 return;
             }
 
-            await TraverseTreeDFS(root.Children?.FirstOrDefault(), context);
+            await TraverseTreeDFS(child, context);
         }
     }
 }

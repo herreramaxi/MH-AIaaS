@@ -1,5 +1,5 @@
 ﻿using AIaaS.WebAPI.Models;
-using Microsoft.ML;
+using AIaaS.WebAPI.Models.Dtos;
 
 namespace AIaaS.WebAPI.Interfaces
 {
@@ -7,6 +7,10 @@ namespace AIaaS.WebAPI.Interfaces
     {
         string Name { get; set; }
         string Type { get; set; }
-        Task Execute(WorkflowContext mlContext, Models.Dtos.WorkflowNodeDto root);
+        void Preprocessing(WorkflowContext context, WorkflowNodeDto root);
+        Task Hydrate(WorkflowContext context, WorkflowNodeDto root);
+        Task Run(WorkflowContext context, WorkflowNodeDto root);
+        bool Validate(WorkflowContext context, WorkflowNodeDto root);
+        void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root, WorkflowNodeDto? child);
     }
 }

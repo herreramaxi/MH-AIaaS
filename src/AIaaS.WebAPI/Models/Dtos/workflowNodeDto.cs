@@ -6,20 +6,20 @@
         public IList<WorkflowNodeDto>? Children { get; set; }
         public IList<string> OutputColumns { get; set; }
 
-        public void Error(string errorMessage)
+        public void SetAsFailed(string errorMessage)
         {
             if (this.Data is null) return;
 
             this.Data.ValidationMessage = errorMessage;
-            this.Data.IsValid = false;
+            this.Data.IsFailed = true;
         }
 
-        public void Success()
+        public void SetAsSuccess()
         {
             if (this.Data is null) return;
 
             this.Data.ValidationMessage = null;
-            this.Data.IsValid = true;
+            this.Data.IsFailed = false;
         }
 
         public U? GetParameterValue<T, U>(string parameterName, Func<T, U?> conversionFn) where T : IConvertible
@@ -53,6 +53,13 @@
             if (this.Data?.Config is null || !this.Data.Config.Any()) return null;
 
             return this.Data.Config.FirstOrDefault(x => x.Name.Equals(parameterName, StringComparison.InvariantCultureIgnoreCase));
+        }
+
+        public void PropagateDatasetColumns(IList<string>? datasetColumns)
+        {
+            if (this.Data is null || datasetColumns is null) return;
+
+            this.Data.DatasetColumns = datasetColumns;
         }
     }
 }

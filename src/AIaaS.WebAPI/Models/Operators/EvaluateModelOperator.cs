@@ -19,20 +19,45 @@ namespace AIaaS.WebAPI.Models.Operators
             _logger = logger;
             _dbContext = dbContext;
         }
-        public override async Task Execute(WorkflowContext context, Dtos.WorkflowNodeDto root)
+
+        public override Task Hydrate(WorkflowContext context, WorkflowNodeDto root)
         {
-            //context.TrainedModel = context.MLContext.Model.Load("model.zip", out var modelInputSchema);
-            //var workflow = await _dbContext.Workflows.FindAsync(context.Workflow.Id);
-            //await _dbContext.Entry(workflow).Reference(x=> x.MLModel).LoadAsync();            
-            //using var memStream = new MemoryStream(workflow.MLModel.Data);
-            //context.TrainedModel = context.MLContext.Model.Load(memStream, out var inputSchema);
+            return Task.CompletedTask;
+        }
+
+        public override bool Validate(WorkflowContext context, WorkflowNodeDto root)
+        {
+            if (root.Data?.DatasetColumns is null || !root.Data.DatasetColumns.Any())
+            {
+                root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
+                return false;
+            }
+
+            return true;
+        }
+
+        public override async Task Run(WorkflowContext context, WorkflowNodeDto root)
+        {         
             if (string.IsNullOrEmpty(context.LabelColumn))
             {
-                root.Error("No label column found on the pipeline, please select a clabel column from a 'Train Model' operator");
+                root.SetAsFailed("Label column is not found, please add a 'Train Model' operator into the pipeline and select a label column");
+                return;
+            }
+
+            if (context.Trainer is null)
+            {
+                root.SetAsFailed("Trainer not found, please add a 'Train Model' operator into the pipeline");
+                return;
+            }
+
+            if (context.TestData is null)
+            {
+                root.SetAsFailed("Test data not found, please add a 'Split Data' operator into the pipeline");
                 return;
             }
 
             IDataView predictions = context.TrainedModel.Transform(context.TestData);
+            //TODO: Configure score column
             var metrics = context.MLContext.Regression.Evaluate(predictions, labelColumnName: context.LabelColumn, scoreColumnName: "Score");
             var modelMetrics = new RegressionMetricsDto
             {
@@ -44,11 +69,11 @@ namespace AIaaS.WebAPI.Models.Operators
             };
             var metricsSerialized = JsonSerializer.Serialize(modelMetrics);
 
-            PrintRegressionMetrics(context.Trainer.ToString(), metrics);
+            PrintRegressionMetrics(context.Trainer?.ToString() ?? "N/A", metrics);
 
             if (context.Workflow.MLModel is null)
             {
-                root.Error("Model not found");
+                root.SetAsFailed("Model not found, please add a 'Train Model' operator into the pipeline");
                 return;
             }
 
@@ -71,7 +96,6 @@ namespace AIaaS.WebAPI.Models.Operators
             }
             await _dbContext.SaveChangesAsync();
 
-            root.Success();
             root.Data.Parameters = new Dictionary<string, object>();
             root.Data.Parameters.Add("ModelMetricsId", context.Workflow.MLModel.ModelMetrics.Id);
         }

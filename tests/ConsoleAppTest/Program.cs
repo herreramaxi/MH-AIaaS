@@ -9,6 +9,8 @@ namespace Regression_TaxiFarePrediction
 {
     internal static class Program
     {
+
+      
         //https://github.com/jwood803/MLNetExamples/blob/master/MLNetExamples/NullValues/ReplacedValues.cs
         static void Main(string[] args) //If args[0] == "svg" a vector-based chart will be created instead a .png chart
         {
@@ -22,7 +24,10 @@ namespace Regression_TaxiFarePrediction
             //ReplaceMissingValues();
             //var dbContext = new EfContext();
 
-            DatasetTest();
+            var hpp = new HousingPricePrediction();
+            hpp.Run();
+
+                DatasetTest();
             return;
 
             var mlContext = new MLContext();

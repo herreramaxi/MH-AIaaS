@@ -4,24 +4,51 @@ using AIaaS.WebAPI.Models.enums;
 namespace AIaaS.WebAPI.Models.Operators
 {
     [Operator("Split Data", OperatorType.Split, 3)]
-    [OperatorParameter("Test Fraction", "The fraction of data to go into the test set", "text")] 
+    [OperatorParameter("Test Fraction", "The fraction of data to go into the test set", "text")]
     public class SplitDataOperator : WorkflowOperatorAbstract
     {
-        public override Task Execute(WorkflowContext context, WorkflowNodeDto root)
+        private double _fraction;
+
+        public override Task Hydrate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
-            var mlContext = context.MLContext;
-            
+            return Task.CompletedTask;
+        }
+
+        public override bool Validate(WorkflowContext mlContext, WorkflowNodeDto root)
+        {
+            if (root.Data?.DatasetColumns is null || !root.Data.DatasetColumns.Any())
+            {
+                root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
+                return false;
+            }
+
             var fraction = root.GetParameterValue<double>("Test Fraction");
 
-            if (fraction is null || fraction == 0) {
-                root.Error("Please enter a 'Test Fraction' greater than zero");
+            if (fraction is null || fraction == 0)
+            {
+                root.SetAsFailed("Please enter a 'Test Fraction' greater than zero");
+                return false;
+            }
+
+            _fraction = (double)fraction;
+
+            return true;
+        }
+
+        public override Task Run(WorkflowContext context, WorkflowNodeDto root)
+        {
+            var mlContext = context.MLContext;          
+
+            if (context.DataView is null)
+            {
+                root.SetAsFailed("DataView not found, please ensure there is a 'dataset' operator correctly configured");
                 return Task.CompletedTask;
             }
 
-            var trainTestSplit = mlContext.Data.TrainTestSplit(context.DataView, testFraction: (double)fraction);
+            var trainTestSplit = mlContext.Data.TrainTestSplit(context.DataView, testFraction: _fraction);
             context.TrainingData = trainTestSplit.TrainSet;
             context.TestData = trainTestSplit.TestSet;
-            root.Success();
+
             return Task.CompletedTask;
         }
     }

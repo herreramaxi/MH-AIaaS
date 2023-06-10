@@ -1,5 +1,4 @@
 ﻿using AIaaS.WebAPI.Data;
-using AIaaS.WebAPI.ExtensionMethods;
 using AIaaS.WebAPI.Models.Dtos;
 using AIaaS.WebAPI.Models.enums;
 using CsvHelper;
@@ -17,81 +16,85 @@ namespace AIaaS.WebAPI.Models.Operators
     public class DatasetOperator : WorkflowOperatorAbstract
     {
         private readonly EfContext _dbContext;
+        private IList<string>? _selectedColumns;
+        private int? _datasetId;
 
         public DatasetOperator(EfContext dbContext)
         {
             _dbContext = dbContext;
         }
 
-        public override async Task Execute(WorkflowContext context, WorkflowNodeDto root)
+        public override Task Hydrate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
-            var datasetId = root.GetParameterValue<int>("Dataset");
+            _datasetId = root.GetParameterValue<int>("Dataset");
+            _selectedColumns = root.GetParameterValue<string, IList<string>>("SelectedColumns", x => JsonSerializer.Deserialize<IList<string>>(x));
+            return Task.CompletedTask;
+        }
 
-            if (datasetId is null)
+        public override bool Validate(WorkflowContext mlContext, WorkflowNodeDto root)
+        {
+            if (_datasetId is null)
             {
-                root.Error("Please select a dataset");
-                return;
+                root.SetAsFailed("Please select a dataset");
+                return false;
             }
 
-            var selectedColumns = root.GetParameterValue<string, IList<string>>("SelectedColumns", x => JsonSerializer.Deserialize<IList<string>>(x));
-
-            if (selectedColumns is null || !selectedColumns.Any())
+            if (_selectedColumns is null || !_selectedColumns.Any())
             {
-                root.Error("Please select columns from dataset");
-                return;
+                root.SetAsFailed("Please select columns from dataset");
+                return false;
             }
 
-            var dataset = await _dbContext.Datasets.FindAsync(datasetId);
+            return true;
+        }
+
+        public override async Task Run(WorkflowContext context, WorkflowNodeDto root)
+        {
+            if (_datasetId is null || _selectedColumns is null || !_selectedColumns.Any())
+                return;
+
+            var dataset = await _dbContext.Datasets.FindAsync(_datasetId);
+
             if (dataset is null)
             {
-                root.Error("Dataset not found");
+                root.SetAsFailed("Dataset not found");
                 return;
             }
-
-            await _dbContext.Entry(dataset).Collection(d => d.ColumnSettings).LoadAsync();
-            await _dbContext.Entry(dataset).Reference(x => x.DataViewFile).LoadAsync();
 
             context.Dataset = dataset;
-            context.ColumnSettings = dataset.ColumnSettings.Where(x => selectedColumns.Contains(x.ColumnName, StringComparer.InvariantCultureIgnoreCase));
-
-            if (!context.ColumnSettings.Any())
-            {
-                root.Error("No columns were found");
-                return;
-            }
+            await _dbContext.Entry(context.Dataset).Collection(d => d.ColumnSettings).LoadAsync();
+            await _dbContext.Entry(context.Dataset).Reference(x => x.DataViewFile).LoadAsync();
 
             if (dataset.DataViewFile is null)
             {
-                root.Error("DataViewFile not found");
+                root.SetAsFailed("DataViewFile not found");
                 return;
             }
 
-            var file = dataset.DataViewFile;
+            var datasetColumnNames = context.Dataset.ColumnSettings.Select(x => x.ColumnName);
+            var nonExistingColumnNames = _selectedColumns.Where(x => !datasetColumnNames.Contains(x, StringComparer.InvariantCultureIgnoreCase));
+
+            if (nonExistingColumnNames.Any())
+            {
+                root.SetAsFailed($"The following selected columns do not exists in Dataset: {string.Join(", ", nonExistingColumnNames)}");
+                return;
+            }
+
+            //TODO: propagate this columns, so if I add editDataset operator, then it will modify and propagate those columns
+            context.ColumnSettings = context.Dataset.ColumnSettings.Where(x => _selectedColumns.Contains(x.ColumnName, StringComparer.InvariantCultureIgnoreCase));
 
             //TODO: check how to manage usings cos if I dispose IDataview cannot be processed
-            var memStream = new MemoryStream(file.Data);
+            var memStream = new MemoryStream(dataset.DataViewFile.Data);
             var mss = new MultiStreamSourceFile(memStream);
             var mlContext = new MLContext();
             context.DataView = mlContext.Data.LoadFromBinary(mss);
             context.InputOutputColumns = context.ColumnSettings.Select(x => new InputOutputColumnPair(x.ColumnName, x.ColumnName)).ToArray();
             //var preview = context.DataView.Preview();
-            root.Success();
         }
 
-        private IEnumerable<SalesRow> GetSalesAsEnumerable()
+        public override void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root, WorkflowNodeDto? child)
         {
-            var list = new List<SalesRow>() {
-            new SalesRow { TV = 10.0f, Newspaper = 20.0f, Radio = 30.0f, Sales = 20.0f },
-             new SalesRow { TV = 15.0f, Newspaper = 25.0f, Radio = 35.0f, Sales = 25.0f },
-                   new SalesRow { TV = 40.0f, Newspaper = 60.0f, Radio = 70.0f, Sales = 80.0f },
-                   new SalesRow { TV = 50.0f, Newspaper = 60.0f, Radio = 70.0f, Sales = 80.0f },
-            };
-
-
-            foreach (var item in list)
-            {
-                yield return item;
-            }
+            child?.PropagateDatasetColumns( _selectedColumns);
         }
 
         public IDataView NewMethod<T>(MLContext mlContext, StreamReader tr, SchemaDefinition schemaDefinition) where T : class
@@ -110,7 +113,7 @@ namespace AIaaS.WebAPI.Models.Operators
         public IEnumerable<T> GetRecordsMethod<T>(CsvReader csvReader)
         {
             return csvReader.GetRecords<T>();
-        }
+        }      
     }
 
     public class SalesRow

@@ -164,5 +164,37 @@ namespace AIaaS.WebAPI.Controllers
             return StatusCode(500, "Error when running the ML workflow");
         }
 
+        [HttpPost("validate")]
+        public async Task<IActionResult> Validate([FromServices] IWorkflowService workflowService, WorkflowDto workflowDto)
+        {
+            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+
+            if (workflow is null)
+            {
+                return NotFound("Workflow not found");
+            }
+
+            if (string.IsNullOrEmpty(workflowDto?.Root))
+                return BadRequest("Workflow is required");
+
+            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
+
+            if (workflowGraphDto is null)
+            {
+                return BadRequest("Not able to process workflow");
+            }
+
+            var serviceResult = await workflowService.Validate(workflowGraphDto, workflow);
+
+            if (serviceResult.IsSuccess)
+            {
+                workflowDto.Root = JsonSerializer.Serialize(serviceResult.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                return Ok(workflowDto);
+            }
+
+            return StatusCode(500, "Error when running the ML workflow");
+        }
+
     }
 }

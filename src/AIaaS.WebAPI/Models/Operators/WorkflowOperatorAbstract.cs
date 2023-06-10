@@ -1,5 +1,5 @@
 ﻿using AIaaS.WebAPI.Interfaces;
-using Microsoft.ML;
+using AIaaS.WebAPI.Models.Dtos;
 
 namespace AIaaS.WebAPI.Models.Operators
 {
@@ -15,6 +15,21 @@ namespace AIaaS.WebAPI.Models.Operators
             Name = operatorAttribute.Name;
             Type = operatorAttribute.Type;
         }
-        public abstract Task Execute(WorkflowContext mlContext, Dtos.WorkflowNodeDto root);
+
+        public virtual void Preprocessing(WorkflowContext context, WorkflowNodeDto root)
+        {
+            if (root.Data is null) return;
+
+            root.Data.IsFailed = false;
+            root.Data.ValidationMessage = null;
+        }
+
+        public abstract Task Hydrate(WorkflowContext context, WorkflowNodeDto root);
+        public abstract Task Run(WorkflowContext context, Dtos.WorkflowNodeDto root);
+        public abstract bool Validate(WorkflowContext context, WorkflowNodeDto root);
+        public virtual void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root, WorkflowNodeDto? child)
+        {
+            child?.PropagateDatasetColumns(root.Data?.DatasetColumns);
+        }
     }
 }

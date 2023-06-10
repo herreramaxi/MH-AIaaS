@@ -9,12 +9,28 @@ namespace AIaaS.WebAPI.Models.Operators
     [OperatorParameter("Value", "Javascript expression for the value", "text")]
     public class NormalizeOperator : WorkflowOperatorAbstract
     {
-        public override async Task Execute(WorkflowContext context, WorkflowNodeDto root)
+        public override Task Hydrate(WorkflowContext mlContext, WorkflowNodeDto root)
+        {
+            return Task.CompletedTask;
+        }
+
+        public override bool Validate(WorkflowContext mlContext, WorkflowNodeDto root)
+        {
+            if (root.Data?.DatasetColumns is null || !root.Data.DatasetColumns.Any())
+            {
+                root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
+                return false;
+            }
+
+            return true;
+        }
+
+        public override Task Run(WorkflowContext context, WorkflowNodeDto root)
         {
             if (context.InputOutputColumns is null || !context.InputOutputColumns.Any())
             {
-                root.Error("No selected columns detected on pipeline, please select columns on dataset operator");
-                return;
+                root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
+                return Task.CompletedTask;
             }
 
             var mlContext = context.MLContext;
@@ -24,7 +40,7 @@ namespace AIaaS.WebAPI.Models.Operators
                 context.EstimatorChain.Append(estimator) :
                 estimator;
 
-            root.Success();
+            return Task.CompletedTask;
         }
     }
 }
