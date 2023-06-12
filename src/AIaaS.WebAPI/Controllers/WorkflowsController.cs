@@ -5,7 +5,6 @@ using AIaaS.WebAPI.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace AIaaS.WebAPI.Controllers
 {
@@ -71,25 +70,17 @@ namespace AIaaS.WebAPI.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> Save(WorkflowDto workflowDto)
+        public async Task<IActionResult> Save([FromServices] IWorkflowService workflowService, WorkflowDto workflowDto)
         {
-            if (workflowDto == null)
-                return BadRequest("Workflow is required");
+            var serviceResult = await workflowService.Save(workflowDto);
 
-            if (workflowDto.Id <= 0)
-                return BadRequest("Workflow id must be greater than zero");
-
-            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
-            if (workflow == null)
-                return NotFound();
-
-            //var graphSerialized = JsonSerializer.Serialize(workflowDto.Root);
-            workflow.Data = workflowDto.Root;
-
-            _dbContext.Workflows.Update(workflow);
-            await _dbContext.SaveChangesAsync();
-
-            return NoContent();
+            return serviceResult.Status switch
+            {
+                Ardalis.Result.ResultStatus.Ok => Ok(serviceResult.Value),
+                Ardalis.Result.ResultStatus.NotFound => NotFound(serviceResult.Errors.FirstOrDefault()),
+                Ardalis.Result.ResultStatus.Error => BadRequest(serviceResult.Errors.FirstOrDefault()),
+                _ => StatusCode(500, serviceResult.Errors.FirstOrDefault() ?? "Unknown error"),
+            };
         }
 
 
@@ -131,69 +122,32 @@ namespace AIaaS.WebAPI.Controllers
             return Ok();
         }
 
-
         [HttpPost("run")]
         public async Task<IActionResult> Run([FromServices] IWorkflowService workflowService, WorkflowDto workflowDto)
         {
-            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+            var serviceResult = await workflowService.Run(workflowDto);
 
-            if (workflow is null)
+            return serviceResult.Status switch
             {
-                return NotFound("Workflow not found");
-            }
-
-            if (string.IsNullOrEmpty(workflowDto?.Root))
-                return BadRequest("Workflow is required");
-
-            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
-
-            if (workflowGraphDto is null)
-            {
-                return BadRequest("Not able to process workflow");
-            }
-
-            var serviceResult = await workflowService.Run(workflowGraphDto, workflow);
-
-            if (serviceResult.IsSuccess)
-            {
-                workflowDto.Root = JsonSerializer.Serialize(serviceResult.Value, new JsonSerializerOptions { PropertyNamingPolicy=  JsonNamingPolicy.CamelCase});
-                return Ok(workflowDto);
-            }
-
-            return StatusCode(500, "Error when running the ML workflow");
+                Ardalis.Result.ResultStatus.Ok => Ok(serviceResult.Value),
+                Ardalis.Result.ResultStatus.NotFound => NotFound(serviceResult.Errors.FirstOrDefault()),
+                Ardalis.Result.ResultStatus.Error => BadRequest(serviceResult.Errors.FirstOrDefault()),
+                _ => StatusCode(500, serviceResult.Errors.FirstOrDefault() ?? "Unknown error"),
+            };
         }
 
         [HttpPost("validate")]
         public async Task<IActionResult> Validate([FromServices] IWorkflowService workflowService, WorkflowDto workflowDto)
         {
-            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+            var serviceResult = await workflowService.Validate(workflowDto);
 
-            if (workflow is null)
+            return serviceResult.Status switch
             {
-                return NotFound("Workflow not found");
-            }
-
-            if (string.IsNullOrEmpty(workflowDto?.Root))
-                return BadRequest("Workflow is required");
-
-            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
-
-            if (workflowGraphDto is null)
-            {
-                return BadRequest("Not able to process workflow");
-            }
-
-            var serviceResult = await workflowService.Validate(workflowGraphDto, workflow);
-
-            if (serviceResult.IsSuccess)
-            {
-                workflowDto.Root = JsonSerializer.Serialize(serviceResult.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-                return Ok(workflowDto);
-            }
-
-            return StatusCode(500, "Error when running the ML workflow");
+                Ardalis.Result.ResultStatus.Ok => Ok(serviceResult.Value),
+                Ardalis.Result.ResultStatus.NotFound => NotFound(serviceResult.Errors.FirstOrDefault()),
+                Ardalis.Result.ResultStatus.Error => BadRequest(serviceResult.Errors.FirstOrDefault()),
+                _ => StatusCode(500, serviceResult.Errors.FirstOrDefault() ?? "Unknown error"),
+            };
         }
 
     }

@@ -16,20 +16,33 @@ namespace AIaaS.WebAPI.Models.Operators
             Type = operatorAttribute.Type;
         }
 
-        public virtual void Preprocessing(WorkflowContext context, WorkflowNodeDto root)
+        public virtual void Preprocessing(WorkflowContext context, WorkflowNodeDto parent, WorkflowNodeDto? child)
         {
-            if (root.Data is null) return;
+            if (child is not null)
+            {
+                child.Parent = parent;
+            }
 
-            root.Data.IsFailed = false;
-            root.Data.ValidationMessage = null;
+            if (parent.Data is null) return;
+
+            parent.Data.IsFailed = false;
+            parent.Data.ValidationMessage = null;
+            parent.Data.DatasetColumns = null;
         }
 
         public abstract Task Hydrate(WorkflowContext context, WorkflowNodeDto root);
         public abstract Task Run(WorkflowContext context, Dtos.WorkflowNodeDto root);
         public abstract bool Validate(WorkflowContext context, WorkflowNodeDto root);
-        public virtual void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root, WorkflowNodeDto? child)
+        public virtual void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root)
         {
-            child?.PropagateDatasetColumns(root.Data?.DatasetColumns);
+            var parentDatasetColumns = root.Parent?.Data?.DatasetColumns;
+            
+            root.SetDatasetColumns(parentDatasetColumns);
+        }
+
+        public void Postprocessing(WorkflowContext context, WorkflowNodeDto root)
+        {
+            root.Parent = null;
         }
     }
 }

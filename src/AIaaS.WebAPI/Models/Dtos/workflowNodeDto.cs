@@ -5,6 +5,7 @@
         public string Id { get; set; }
         public IList<WorkflowNodeDto>? Children { get; set; }
         public IList<string> OutputColumns { get; set; }
+        public WorkflowNodeDto? Parent { get;  set; }
 
         public void SetAsFailed(string errorMessage)
         {
@@ -55,9 +56,9 @@
             return this.Data.Config.FirstOrDefault(x => x.Name.Equals(parameterName, StringComparison.InvariantCultureIgnoreCase));
         }
 
-        public void PropagateDatasetColumns(IList<string>? datasetColumns)
+        public void SetDatasetColumns(IList<string>? datasetColumns)
         {
-            if (this.Data is null || datasetColumns is null) return;
+            if (this.Data is null) return;
 
             this.Data.DatasetColumns = datasetColumns;
         }

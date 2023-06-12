@@ -1,22 +1,69 @@
-﻿using AIaaS.WebAPI.Interfaces;
+﻿using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Models;
 using AIaaS.WebAPI.Models.Dtos;
 using Ardalis.Result;
 using Microsoft.ML;
+using System.Text.Json;
 
 namespace AIaaS.WebAPI.Services
 {
     public class WorkflowService : IWorkflowService
     {
         private readonly IEnumerable<IWorkflowOperator> _workflowOperators;
+        private readonly EfContext _dbContext;
 
-        public WorkflowService(IEnumerable<IWorkflowOperator> workflowOperators)
+        public WorkflowService(IEnumerable<IWorkflowOperator> workflowOperators, EfContext dbContext)
         {
             _workflowOperators = workflowOperators;
+            _dbContext = dbContext;
         }
 
-        public async Task<Result<WorkflowGraphDto>> Run(WorkflowGraphDto workflowGraphDto, Workflow workflow)
+        public async Task<Result<WorkflowDto>> Save(WorkflowDto workflowDto)
         {
+            if (workflowDto == null)
+                return Result.Error("Workflow is required");
+
+            if (workflowDto.Id <= 0)
+                return Result.Error("Workflow id must be greater than zero");
+
+            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+            if (workflow == null)
+                return Result.NotFound();
+                       
+            workflow.Data = workflowDto.Root;
+
+            _dbContext.Workflows.Update(workflow);
+            await _dbContext.SaveChangesAsync();
+
+            workflowDto.ModifiedOn = workflow.ModifiedOn;
+            workflowDto.ModifiedBy = workflow.ModifiedBy;
+
+            return Result.Success(workflowDto);
+        }
+
+        public async Task<Result<WorkflowDto>> Run(WorkflowDto workflowDto)
+        {
+            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+
+            if (workflow is null)
+            {
+                return Result.NotFound("Workflow not found");
+            }
+
+            if (string.IsNullOrEmpty(workflowDto?.Root))
+            {
+                return Result.Error("Workflow is required, root property is empty");
+            }
+
+            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
+
+            if (workflowGraphDto is null)
+            {
+                return Result.Error("Not able to process workflow");
+            }
+
             var context = new WorkflowContext()
             {
                 MLContext = new MLContext(seed: 0),
@@ -26,11 +73,33 @@ namespace AIaaS.WebAPI.Services
 
             await TraverseTreeDFS(workflowGraphDto.Root, context);
 
-            return Result.Success(workflowGraphDto);
+            workflowDto.Root = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+            return Result.Success(workflowDto);
         }
 
-        public async Task<Result<WorkflowGraphDto>> Validate(WorkflowGraphDto workflowGraphDto, Workflow workflow)
+        public async Task<Result<WorkflowDto>> Validate(WorkflowDto workflowDto)
         {
+            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+
+            if (workflow is null)
+            {
+                return Result.NotFound("Workflow not found");
+            }
+
+            if (workflowDto.Root is null)
+            {
+                return Result.Error("Not able to process workflow, root property is empty");
+            }
+
+            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
+
+            if (workflowGraphDto is null)
+            {
+                return Result.Error("Not able to process workflow, deserealization failed");
+            }
+
             var context = new WorkflowContext()
             {
                 MLContext = new MLContext(seed: 0),
@@ -39,7 +108,8 @@ namespace AIaaS.WebAPI.Services
 
             await TraverseTreeDFS(workflowGraphDto.Root, context);
 
-            return Result.Success(workflowGraphDto);
+            workflowDto.Root = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            return Result.Success(workflowDto);
         }
 
         private async Task TraverseTreeDFS(WorkflowNodeDto? root, WorkflowContext context)
@@ -58,10 +128,11 @@ namespace AIaaS.WebAPI.Services
 
             try
             {
-                workflowOperator.Preprocessing(context, root);
+                workflowOperator.Preprocessing(context, root, child);
                 await workflowOperator.Hydrate(context, root);
-                workflowOperator.PropagateDatasetColumns(context, root, child);
+                workflowOperator.PropagateDatasetColumns(context, root);
                 var isValid = workflowOperator.Validate(context, root);
+                workflowOperator.Postprocessing(context, root);
 
                 if (context.RunWorkflow && isValid)
                 {

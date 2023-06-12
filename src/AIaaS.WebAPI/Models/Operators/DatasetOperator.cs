@@ -92,9 +92,9 @@ namespace AIaaS.WebAPI.Models.Operators
             //var preview = context.DataView.Preview();
         }
 
-        public override void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root, WorkflowNodeDto? child)
+        public override void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root)
         {
-            child?.PropagateDatasetColumns( _selectedColumns);
+            root.SetDatasetColumns( _selectedColumns);
         }
 
         public IDataView NewMethod<T>(MLContext mlContext, StreamReader tr, SchemaDefinition schemaDefinition) where T : class
