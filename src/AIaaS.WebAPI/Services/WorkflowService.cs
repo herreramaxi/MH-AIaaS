@@ -75,6 +75,14 @@ namespace AIaaS.WebAPI.Services
 
             workflowDto.Root = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
+            workflow.Data = workflowDto.Root;
+
+            _dbContext.Workflows.Update(workflow);
+            await _dbContext.SaveChangesAsync();
+
+            workflowDto.ModifiedOn = workflow.ModifiedOn;
+            workflowDto.ModifiedBy = workflow.ModifiedBy;
+
             return Result.Success(workflowDto);
         }
 
