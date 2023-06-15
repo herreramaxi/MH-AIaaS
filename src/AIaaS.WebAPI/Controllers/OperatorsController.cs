@@ -1,4 +1,5 @@
 ﻿using AIaaS.WebAPI.Models.Dtos;
+using AIaaS.WebAPI.Models.enums;
 using AIaaS.WebAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,16 +28,66 @@ namespace AIaaS.WebAPI.Controllers
         [HttpGet("GetCleaningModes")]
         public ActionResult GetCleaningModes()
         {
-            var replacementModes = new List<CleaningModeDto>()
+            var enums = new List<EnumerationDto>()
             {
-                new CleaningModeDto{Id = (int)Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.DefaultValue, Name = "Default", Description="Replace with the default value of the column based on its type" },
-                new CleaningModeDto{Id = (int)Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Mean, Name = "Mean", Description="Replace with the mean value of the column" },
-                new CleaningModeDto{Id = (int)Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Minimum, Name = "Minimum", Description="Replace with the minimum value of the column" },
-                new CleaningModeDto{Id = (int)Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Maximum, Name = "Maximum", Description="Replace with the maximum value of the column" },
-                new CleaningModeDto{Id = (int)Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Mode, Name = "Most frequent value", Description=" Replace with the most frequent value of the column" },
-                new CleaningModeDto{Id = 6, Name = "Remove row", Description="Remove row if any cell contains a missing value" },
+                new EnumerationDto{Id = Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.DefaultValue.ToString(), Name = "Default", Description="Replace with the default value of the column based on its type" },
+                new EnumerationDto{Id = Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Maximum.ToString(), Name = "Maximum", Description="Replace with the maximum value of the column" },
+                new EnumerationDto{Id = Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Mean.ToString(), Name = "Mean", Description="Replace with the mean value of the column" },
+                new EnumerationDto{Id = Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Minimum.ToString(), Name = "Minimum", Description="Replace with the minimum value of the column" },
+                new EnumerationDto{Id = Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Mode.ToString(), Name = "Most frequent value", Description=" Replace with the most frequent value of the column" },
+                //new EnumerationDto{Id = "RemoveRow", Name = "Remove row", Description="Remove row if any cell contains a missing value" },
             };
-            return Ok(replacementModes);
+            return Ok(enums);
+        }
+
+        [HttpGet("GetNormalizerModes")]
+        public ActionResult GetNormalizerModes()
+        {
+            var enums = new List<EnumerationDto>()
+            {
+                new EnumerationDto{Id = NormalizationTypeEnum.Binning.ToString(), Name = "Binning", Description="Binning" },
+                new EnumerationDto{Id = NormalizationTypeEnum.LogMeanVariance.ToString(), Name = "Log Mean Variance", Description="Log Mean Variance" },
+                new EnumerationDto{Id = NormalizationTypeEnum.MinMax.ToString(), Name = "Min-Max", Description="Min-Max" },
+                 new EnumerationDto{Id = NormalizationTypeEnum.RobustScaling.ToString(), Name = "Robust Scaling", Description="Robust Scaling" },
+                 new EnumerationDto{Id = NormalizationTypeEnum.ZScore.ToString(), Name = "Z-Score", Description="Z-Score" }
+            };
+
+            return Ok(enums);
+        }
+
+        [HttpGet("GetMLTasks")]
+        public ActionResult GetMLTasks()
+        {
+            var enums = new List<EnumerationDto>()
+            {
+                new EnumerationDto{Id =  "Regression", Name = "Regression", Description="Regression" },
+                new EnumerationDto{Id =  "BinaryClassification", Name =  "Binary Classification", Description="Binary Classification" }
+            };
+
+            return Ok(enums);
+        }
+
+        [HttpGet("GetTrainers")]
+        public ActionResult GetTrainers(string task)
+        {
+            var enums = new List<EnumerationDto>();
+            if (task.Equals("Regression", StringComparison.InvariantCultureIgnoreCase))
+            {
+                enums.Add(new EnumerationDto { Id = "SdcaRegression", Name = "SDCA Regression", Description = "Stochastic dual coordinate ascent regression" });
+                enums.Add(new EnumerationDto { Id = "Ols", Name = "Ordinary Least Squares (OLS)", Description = "Ordinary Least Squares (OLS)" });
+                enums.Add(new EnumerationDto { Id = "OnlineGradientDescent", Name = "Online Gradient Descent", Description = "Online Gradient Descent" });
+
+            }
+            else if (task.Equals("BinaryClassification", StringComparison.InvariantCultureIgnoreCase))
+            {
+
+            }
+            else
+            {
+                return NotFound("No trainers found for task");
+            }
+
+            return Ok(enums);
         }
     }
 }

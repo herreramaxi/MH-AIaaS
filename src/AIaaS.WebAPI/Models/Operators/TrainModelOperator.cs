@@ -8,10 +8,14 @@ namespace AIaaS.WebAPI.Models.Operators
     [Operator("Train Model", OperatorType.Train, 4)]
 
     [OperatorParameter("Label", "The name of the label column", "text")]
+    [OperatorParameter("Task", "Type of prediction or inference being made", "list")]
+    [OperatorParameter("Trainer", "Trainer to perform the prediction or inference", "list")]
     public class TrainModelOperator : WorkflowOperatorAbstract
     {
         private readonly EfContext _dbContext;
         private string? _labelColumn;
+        private string? _task;
+        private string? _trainer;
 
         public TrainModelOperator(EfContext dbContext)
         {
@@ -21,6 +25,8 @@ namespace AIaaS.WebAPI.Models.Operators
         public override Task Hydrate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
             _labelColumn = root.GetParameterValue("Label");
+            _task = root.GetParameterValue("Task");
+            _trainer = root.GetParameterValue("Trainer");
 
             return Task.CompletedTask;
         }
@@ -36,6 +42,18 @@ namespace AIaaS.WebAPI.Models.Operators
             if (string.IsNullOrEmpty(_labelColumn))
             {
                 root.SetAsFailed("Please configure a label column");
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(_task))
+            {
+                root.SetAsFailed("Please select a ML task");
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(_trainer))
+            {
+                root.SetAsFailed("Please select a task trainer");
                 return false;
             }
 
@@ -75,7 +93,7 @@ namespace AIaaS.WebAPI.Models.Operators
                 context.EstimatorChain.Append(mlContext.Transforms.Concatenate("Features", features)) :
                 mlContext.Transforms.Concatenate("Features", features);
 
-            var trainer = mlContext.Regression.Trainers.Sdca(labelColumnName: _labelColumn, featureColumnName: "Features");
+            var trainer = GetTtrainer(mlContext);
             var trainingPipeline = context.EstimatorChain.Append(trainer);
             var trainedModel = trainingPipeline.Fit(context.TrainingData);
             context.TrainedModel = trainedModel;
@@ -104,6 +122,20 @@ namespace AIaaS.WebAPI.Models.Operators
 
             await _dbContext.SaveChangesAsync();
             //mlContext.Model.Save(trainedModel, context.TrainingData.Schema, "model.zip");
+        }
+
+        private IEstimator<ITransformer> GetTtrainer(MLContext mlContext)
+        {
+            if (_task != "Regression") throw new Exception("Only regression tasks are supported");
+
+            switch (_trainer)
+            {
+                case "SdcaRegression": return mlContext.Regression.Trainers.Sdca(labelColumnName: _labelColumn, featureColumnName: "Features");
+                case "Ols": return mlContext.Regression.Trainers.Ols(labelColumnName: _labelColumn, featureColumnName: "Features");
+                case "OnlineGradientDescent": return mlContext.Regression.Trainers.OnlineGradientDescent(labelColumnName: _labelColumn, featureColumnName: "Features");
+                default:
+                    return mlContext.Regression.Trainers.Sdca(labelColumnName: _labelColumn, featureColumnName: "Features");
+            }
         }
     }
 }
