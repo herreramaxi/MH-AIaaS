@@ -76,6 +76,16 @@ namespace AIaaS.WebAPI.Controllers
             return Ok(columnSettings);
         }
 
+
+        [HttpGet("GetAvailableDataTypes")]
+        public ActionResult GetAvailableDataTypes()
+        {
+            var dataTypes = Enum.GetNames(typeof(DataKind));
+            var dataTypesAsEnumeration = dataTypes.Select(x => new EnumerationDto() { Id = x, Name = x, Description = x });
+
+            return Ok(dataTypesAsEnumeration);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create(DatasetDto datasetDto)
         {
@@ -311,7 +321,7 @@ namespace AIaaS.WebAPI.Controllers
                     Separators = new[] { ',' },
                     Columns = columns
                 };
-          
+
                 var dataView = mlContext.Data.LoadFromTextFile(filePath, options: options);
 
                 using var stream = new MemoryStream();

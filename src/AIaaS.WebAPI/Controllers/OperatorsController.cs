@@ -88,6 +88,6 @@ namespace AIaaS.WebAPI.Controllers
             }
 
             return Ok(enums);
-        }
+        }       
     }
 }
