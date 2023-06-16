@@ -67,7 +67,7 @@ namespace AIaaS.WebAPI.Models.Operators
             var selectedColumns = context.InputOutputColumns
                 .Where(x => _selectedColumns.Contains(x.InputColumnName, StringComparer.InvariantCultureIgnoreCase))
                 .ToArray();
-
+                       
             if (_cleanMode.Equals("RemoveRow"))
             {
                 //TODO:

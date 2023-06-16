@@ -3,6 +3,7 @@ using AIaaS.WebAPI.Models.enums;
 using AIaaS.WebAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.ML.Data;
 
 namespace AIaaS.WebAPI.Controllers
 {
@@ -88,6 +89,35 @@ namespace AIaaS.WebAPI.Controllers
             }
 
             return Ok(enums);
-        }       
+        }
+
+        [HttpGet("GetAvailableDataTypes")]
+        public ActionResult GetAvailableDataTypes()
+        {
+            var dataTypes = new List<EnumerationDto>
+            {
+            new EnumerationDto{Id = DataKind.String.ToString(), Name ="String" } ,
+            new EnumerationDto{Id = DataKind.Int32.ToString(), Name ="Integer" } ,
+            new EnumerationDto{Id = DataKind.Single.ToString(), Name ="Float" } ,
+            new EnumerationDto{Id = DataKind.Double.ToString(), Name ="Double" } ,
+            new EnumerationDto{Id = DataKind.Boolean.ToString(), Name ="Boolean" } ,
+            new EnumerationDto{Id = DataKind.DateTime.ToString(), Name ="DateTime" }
+            };
+
+            return Ok(dataTypes);
+        }
+
+
+        [HttpGet("GetCategoricalTypes")]
+        public ActionResult GetCategoricalTypes()
+        {
+            var dataTypes = new List<EnumerationDto>
+            {
+            new EnumerationDto{Id = "OneHotEncoding", Name = "OneHotEncoding" } ,
+            new EnumerationDto{Id ="OneHotHashEncoding", Name ="OneHotHashEncoding" }
+            };
+
+            return Ok(dataTypes);
+        }
     }
 }

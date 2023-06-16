@@ -9,5 +9,6 @@
         Train = 4,
         Evaluate = 5,
         Normalize = 6,
+        EditDataset = 7,
     }
 }
