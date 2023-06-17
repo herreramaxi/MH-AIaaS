@@ -67,7 +67,7 @@ namespace AIaaS.WebAPI.Models.Operators
                 .Where(x => _selectedColumns.Contains(x.InputColumnName, StringComparer.InvariantCultureIgnoreCase))
                 .ToArray();
 
-            var estimator = GetNormalizingEstimator(context, mlContext);
+            var estimator = GetNormalizingEstimator(context, selectedColumns);
 
             context.EstimatorChain = context.EstimatorChain is not null ?
                 context.EstimatorChain.Append(estimator) :
@@ -77,17 +77,17 @@ namespace AIaaS.WebAPI.Models.Operators
         }
 
 
-        private NormalizingEstimator GetNormalizingEstimator(WorkflowContext context, MLContext mlContext)
+        private NormalizingEstimator GetNormalizingEstimator(WorkflowContext context, InputOutputColumnPair[] selectedColumns)
         {
             _ = Enum.TryParse<NormalizationTypeEnum>(_normalizationMode, out var normalizer);
 
             return normalizer switch
             {
-                NormalizationTypeEnum.MinMax => mlContext.Transforms.NormalizeMinMax(context.InputOutputColumns),
-                NormalizationTypeEnum.Binning => mlContext.Transforms.NormalizeBinning(context.InputOutputColumns),
-                NormalizationTypeEnum.LogMeanVariance => mlContext.Transforms.NormalizeLogMeanVariance(context.InputOutputColumns),
-                NormalizationTypeEnum.RobustScaling => mlContext.Transforms.NormalizeRobustScaling(context.InputOutputColumns),
-                _ => mlContext.Transforms.NormalizeMeanVariance(context.InputOutputColumns),
+                NormalizationTypeEnum.MinMax => context.MLContext.Transforms.NormalizeMinMax(selectedColumns),
+                NormalizationTypeEnum.Binning => context.MLContext.Transforms.NormalizeBinning(selectedColumns),
+                NormalizationTypeEnum.LogMeanVariance => context.MLContext.Transforms.NormalizeLogMeanVariance(selectedColumns),
+                NormalizationTypeEnum.RobustScaling => context.MLContext.Transforms.NormalizeRobustScaling(selectedColumns),
+                _ => context.MLContext.Transforms.NormalizeMeanVariance(selectedColumns),
             };
         }
     }

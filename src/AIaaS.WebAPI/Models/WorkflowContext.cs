@@ -18,5 +18,6 @@ namespace AIaaS.WebAPI.Models
         public IEstimator<ITransformer> EstimatorChain { get; set; }
         public string? LabelColumn { get; internal set; }
         public bool RunWorkflow { get; internal set; }
+        public string? Task { get; internal set; }
     }
 }

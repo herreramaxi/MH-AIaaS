@@ -8,6 +8,7 @@
         public string Name { get; set; }
         public string Description { get; set; }
         public string Delimiter { get; set; }
+        public bool? MissingRealsAsNaNs { get; set; }
         public ICollection<ColumnSettingDto> ColumnSettings { get; set; }
         public FileStorageDto? FileStorage { get; set; }
     }

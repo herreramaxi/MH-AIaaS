@@ -81,7 +81,10 @@ namespace AIaaS.WebAPI.Controllers
             }
             else if (task.Equals("BinaryClassification", StringComparison.InvariantCultureIgnoreCase))
             {
-
+                enums.Add(new EnumerationDto { Id = "SdcaLogisticRegression", Name = "Sdca Logistic Regression" });
+                enums.Add(new EnumerationDto { Id = "LinearSvm", Name = "Linear Svm" });
+                enums.Add(new EnumerationDto { Id = "AveragedPerceptron", Name = "Averaged Perceptron" });
+                enums.Add(new EnumerationDto { Id = "FastTree", Name = "FastTree" });                
             }
             else
             {

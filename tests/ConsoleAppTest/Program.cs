@@ -24,6 +24,9 @@ namespace Regression_TaxiFarePrediction
             //ReplaceMissingValues();
             //var dbContext = new EfContext();
 
+            var cardFraud = new CreditCardFraudDetection();
+            cardFraud.Run();
+
             var hpp = new HousingPricePrediction();
             hpp.Run();
 

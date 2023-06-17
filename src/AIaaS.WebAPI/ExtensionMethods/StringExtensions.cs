@@ -40,5 +40,18 @@ namespace AIaaS.WebAPI.ExtensionMethods
                 default: return typeof(string);
             }
         }
+
+        public static char ToCharDelimiter(this string delimiter)
+        {
+            var delimiterAsChar = delimiter.Replace("\\t", "\t").ToCharArray().FirstOrDefault();
+            delimiterAsChar = delimiterAsChar == default ? ',' : delimiterAsChar;
+
+            return delimiterAsChar;
+        }
+
+        public static string ToStringDelimiter(this string delimiter)
+        {
+            return delimiter.Replace("\\t", "\t");
+        }
     }
 }

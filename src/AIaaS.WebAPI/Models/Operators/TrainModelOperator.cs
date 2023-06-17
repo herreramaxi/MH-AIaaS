@@ -62,6 +62,8 @@ namespace AIaaS.WebAPI.Models.Operators
 
         public override async Task Run(WorkflowContext context, WorkflowNodeDto root)
         {
+            context.Task = _task;
+
             if (context.ColumnSettings is null || !context.ColumnSettings.Any())
             {
                 root.SetAsFailed("Column settings not found, please select columns on dataset operator");
@@ -88,12 +90,17 @@ namespace AIaaS.WebAPI.Models.Operators
                 return;
             }
 
-            var mlContext = context.MLContext;
+            var mlContext = context.MLContext;      
             context.EstimatorChain = context.EstimatorChain is not null ?
                 context.EstimatorChain.Append(mlContext.Transforms.Concatenate("Features", features)) :
                 mlContext.Transforms.Concatenate("Features", features);
 
-            var trainer = GetTtrainer(mlContext);
+            var trainer = GetTrainer(mlContext,_task, _trainer);
+            if (trainer is null) {
+                root.SetAsFailed($"No trainer found for {_trainer}");
+                return;
+            }
+
             var trainingPipeline = context.EstimatorChain.Append(trainer);
             var trainedModel = trainingPipeline.Fit(context.TrainingData);
             context.TrainedModel = trainedModel;
@@ -124,18 +131,33 @@ namespace AIaaS.WebAPI.Models.Operators
             //mlContext.Model.Save(trainedModel, context.TrainingData.Schema, "model.zip");
         }
 
-        private IEstimator<ITransformer> GetTtrainer(MLContext mlContext)
-        {
-            if (_task != "Regression") throw new Exception("Only regression tasks are supported");
-
-            switch (_trainer)
+        private IEstimator<ITransformer>? GetTrainer(MLContext mlContext ,string task, string trainerName)
+        {         
+            if (task == "Regression")
             {
-                case "SdcaRegression": return mlContext.Regression.Trainers.Sdca(labelColumnName: _labelColumn, featureColumnName: "Features");
-                case "Ols": return mlContext.Regression.Trainers.Ols(labelColumnName: _labelColumn, featureColumnName: "Features");
-                case "OnlineGradientDescent": return mlContext.Regression.Trainers.OnlineGradientDescent(labelColumnName: _labelColumn, featureColumnName: "Features");
-                default:
-                    return mlContext.Regression.Trainers.Sdca(labelColumnName: _labelColumn, featureColumnName: "Features");
+                switch (trainerName)
+                {
+                    case "SdcaRegression": return mlContext.Regression.Trainers.Sdca(labelColumnName: _labelColumn, featureColumnName: "Features");
+                    case "Ols": return mlContext.Regression.Trainers.Ols(labelColumnName: _labelColumn, featureColumnName: "Features");
+                    case "OnlineGradientDescent": return mlContext.Regression.Trainers.OnlineGradientDescent(labelColumnName: _labelColumn, featureColumnName: "Features");
+                    default:
+                        return mlContext.Regression.Trainers.Sdca(labelColumnName: _labelColumn, featureColumnName: "Features");
+                }
             }
+            else if (task == "BinaryClassification")
+            {
+                switch (trainerName)
+                {
+                    case "SdcaLogisticRegression": return mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: _labelColumn, featureColumnName: "Features");
+                    case "LinearSvm": return mlContext.BinaryClassification.Trainers.LinearSvm(labelColumnName: _labelColumn, featureColumnName: "Features");
+                    case "AveragedPerceptron": return mlContext.BinaryClassification.Trainers.AveragedPerceptron(labelColumnName: _labelColumn, featureColumnName: "Features");
+                    case "FastTree": return mlContext.BinaryClassification.Trainers.FastTree(labelColumnName: _labelColumn, featureColumnName: "Features");
+                    default:
+                        return mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: _labelColumn, featureColumnName: "Features");
+                }
+
+            }
+            else return null;
         }
     }
 }

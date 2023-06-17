@@ -7,5 +7,6 @@
         public double RootMeanSquaredError { get; set; }
         public double LossFunction { get; set; }
         public double RSquared { get; set; }
+        public string Task { get; set; }
     }
 }

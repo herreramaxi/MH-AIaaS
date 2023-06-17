@@ -106,6 +106,7 @@ namespace AIaaS.WebAPI.Controllers
                 Name = datasetDto.Name,
                 Description = datasetDto.Description,
                 Delimiter = datasetDto.Delimiter,
+                MissingRealsAsNaNs = datasetDto.MissingRealsAsNaNs,
                 User = user
             };
 
@@ -314,13 +315,30 @@ namespace AIaaS.WebAPI.Controllers
 
                 var mlContext = new MLContext();
                 var columns = dataset.ColumnSettings.Select((x, index) => new TextLoader.Column(x.ColumnName, x.Type.ToDataKind(), index)).ToArray();
+                var separator = dataset.Delimiter.ToCharDelimiter();
                 var options = new TextLoader.Options
                 {
+                    AllowQuoting = true,
                     HasHeader = true,
-                    MissingRealsAsNaNs = true,
-                    Separators = new[] { ',' },
+                    MissingRealsAsNaNs = dataset.MissingRealsAsNaNs ?? false,
+                    Separators = new[] { separator },
                     Columns = columns
                 };
+
+                var columnNames = dataset.ColumnSettings.Select(x => x.ColumnName);
+                var labelColumn = columnNames
+                    .Where(x => x.Equals("Label", StringComparison.InvariantCultureIgnoreCase))
+                  .FirstOrDefault() ?? columnNames.Last();
+
+                //var columnInference = mlContext.Auto().InferColumns(filePath, labelColumnName: labelColumn, groupColumns: false, separatorChar: separator);
+                //columnInference.TextLoaderOptions.MissingRealsAsNaNs = dataset.MissingRealsAsNaNs??false;
+                //TextLoader loader = mlContext.Data.CreateTextLoader(columnInference.TextLoaderOptions);
+                //IDataView dataView = loader.Load(filePath);
+                //fileAnalysis.Header = fileAnalysis.ColumnsSettings.Select(x => x.ColumnName).ToArray();
+
+
+                //TextLoader loader = mlContext.Data.CreateTextLoader(options);
+                //var dataView = loader.Load(filePath);
 
                 var dataView = mlContext.Data.LoadFromTextFile(filePath, options: options);
 
@@ -342,6 +360,7 @@ namespace AIaaS.WebAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error when uploading file");
+                return StatusCode(500, $"Error when uploading file: {ex.Message}");
             }
             finally
             {
@@ -351,7 +370,7 @@ namespace AIaaS.WebAPI.Controllers
                 }
             }
 
-            return StatusCode(500, "Error when uploading file");
+           
         }
 
 
@@ -462,7 +481,7 @@ namespace AIaaS.WebAPI.Controllers
         }
 
         [HttpPost("Preview")]
-        public async Task<IActionResult> Preview([FromForm] IFormFile file)
+        public async Task<IActionResult> Preview([FromForm] IFormFile file, [FromForm] string? delimiter = null, [FromForm] bool missingRealsAsNaNs = false)
         {
             var filePath = default(string);
             try
@@ -471,14 +490,27 @@ namespace AIaaS.WebAPI.Controllers
                     return BadRequest("File is required");
 
                 var fileAnalysis = new FileAnalysisDto();
+                fileAnalysis.Delimiter = !string.IsNullOrEmpty(delimiter) ?
+                    delimiter.ToStringDelimiter() :
+                    file.FileName.Contains(".tsv", StringComparison.InvariantCultureIgnoreCase) ? "\t" : ",";
+
                 filePath = await SaveTempFile(file);
 
                 fileAnalysis.Header = GetHeader(file, fileAnalysis);
-                var labelColumn = fileAnalysis.Header.Last();
+
+                if (!fileAnalysis.Header.Any())
+                {
+                    return BadRequest("Header is empty");
+                }
+
+                var labelColumn = fileAnalysis.Header
+                    .Where(x => x.Equals("Label", StringComparison.InvariantCultureIgnoreCase))
+                    .FirstOrDefault() ?? fileAnalysis.Header.Last();
 
                 var mlContext = new MLContext();
-                var columnInference = mlContext.Auto().InferColumns(filePath, labelColumnName: labelColumn, groupColumns: false);
-                //fileAnalysis.Header = fileAnalysis.ColumnsSettings.Select(x => x.ColumnName).ToArray();
+                var separatorChar = fileAnalysis.Delimiter.ToCharDelimiter();
+                var columnInference = mlContext.Auto().InferColumns(filePath, labelColumnName: labelColumn, groupColumns: false, separatorChar: separatorChar);
+                columnInference.TextLoaderOptions.MissingRealsAsNaNs = missingRealsAsNaNs;
 
                 fileAnalysis.ColumnsSettings = columnInference.TextLoaderOptions.Columns.Select(x =>
                       new ColumnSettingDto
@@ -513,11 +545,13 @@ namespace AIaaS.WebAPI.Controllers
 
                 fileAnalysis.Data = records;
 
+                fileAnalysis.Delimiter = fileAnalysis.Delimiter.Replace("\t", "\\t");
                 return Ok(fileAnalysis);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error when generating file analysis");
+                return StatusCode(500, $"Error when generating file preview: {ex.Message}");
             }
             finally
             {
@@ -526,21 +560,19 @@ namespace AIaaS.WebAPI.Controllers
                     System.IO.File.Delete(filePath);
                 }
             }
-
-            return StatusCode(500, "Error when generating file analysis");
         }
 
-        private string[]? GetHeader(IFormFile file, FileAnalysisDto fileAnalysis)
+        private string[] GetHeader(IFormFile file, FileAnalysisDto fileAnalysis)
         {
             using var reader = file.OpenReadStream();
             using var tr = new StreamReader(reader);
             var csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture);
-            csvConfiguration.Delimiter = ",";
+            csvConfiguration.Delimiter = fileAnalysis.Delimiter;
             csvConfiguration.HasHeaderRecord = true;
             using var csv = new CsvReader(tr, csvConfiguration);
             csv.Read();
             csv.ReadHeader();
-            return csv.Context.Reader.HeaderRecord;
+            return csv.Context.Reader.HeaderRecord ?? Array.Empty<string>();
         }
 
         private async Task<string> SaveTempFile(IFormFile file)

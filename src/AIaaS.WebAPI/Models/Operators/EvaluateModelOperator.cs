@@ -37,7 +37,7 @@ namespace AIaaS.WebAPI.Models.Operators
         }
 
         public override async Task Run(WorkflowContext context, WorkflowNodeDto root)
-        {         
+        {
             if (string.IsNullOrEmpty(context.LabelColumn))
             {
                 root.SetAsFailed("Label column is not found, please add a 'Train Model' operator into the pipeline and select a label column");
@@ -58,18 +58,47 @@ namespace AIaaS.WebAPI.Models.Operators
 
             IDataView predictions = context.TrainedModel.Transform(context.TestData);
             //TODO: Configure score column
-            var metrics = context.MLContext.Regression.Evaluate(predictions, labelColumnName: context.LabelColumn, scoreColumnName: "Score");
-            var modelMetrics = new RegressionMetricsDto
-            {
-                LossFunction = metrics.LossFunction,
-                MeanAbsoluteError = metrics.MeanAbsoluteError,
-                MeanSquaredError = metrics.MeanSquaredError,
-                RootMeanSquaredError = metrics.RootMeanSquaredError,
-                RSquared = metrics.RSquared
-            };
-            var metricsSerialized = JsonSerializer.Serialize(modelMetrics);
 
-            PrintRegressionMetrics(context.Trainer?.ToString() ?? "N/A", metrics);
+            var metricsSerialized = default(string);
+            if (context.Task == "Regression")
+            {
+                var metrics = context.MLContext.Regression.Evaluate(predictions, labelColumnName: context.LabelColumn, scoreColumnName: "Score");
+                var modelMetrics = new RegressionMetricsDto
+                {
+                    Task = context.Task,
+                    LossFunction = metrics.LossFunction,
+                    MeanAbsoluteError = metrics.MeanAbsoluteError,
+                    MeanSquaredError = metrics.MeanSquaredError,
+                    RootMeanSquaredError = metrics.RootMeanSquaredError,
+                    RSquared = metrics.RSquared
+                };
+                metricsSerialized = JsonSerializer.Serialize(modelMetrics);
+
+                PrintRegressionMetrics(context.Trainer?.ToString() ?? "N/A", metrics);
+            }
+            else if (context.Task == "BinaryClassification")
+            {
+                var metrics = context.MLContext.BinaryClassification.Evaluate(predictions, labelColumnName: context.LabelColumn, scoreColumnName: "Score");
+                var modelMetrics = new BinaryClasifficationMetricsDto
+                {
+                    Task = context.Task,
+                    LogLossReduction = metrics.LogLossReduction,
+                    Accuracy = metrics.Accuracy,
+                    LogLoss = metrics.LogLoss,
+                    NegativeRecall = metrics.NegativeRecall,
+                    PositiveRecall = metrics.PositiveRecall,
+                    AreaUnderPrecisionRecallCurve = metrics.AreaUnderPrecisionRecallCurve,
+                    AreaUnderRocCurve = metrics.AreaUnderRocCurve,
+                    Entropy = metrics.Entropy,
+                    F1Score = metrics.F1Score
+                };
+                metricsSerialized = JsonSerializer.Serialize(modelMetrics);
+            }
+            else
+            {
+                root.SetAsFailed($"Evaluate operator is not able to generate metrics for task: {context.Task}");
+                return;
+            }
 
             if (context.Workflow.MLModel is null)
             {
