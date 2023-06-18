@@ -1,7 +1,6 @@
 ﻿using AIaaS.WebAPI.Data;
 using AIaaS.WebAPI.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -23,23 +22,47 @@ namespace AIaaS.WebAPI.Controllers
         {
             _dbContext = dbContext;
 
-            var workflow = _dbContext.Workflows.FirstOrDefault(x => x.Name == "Housing - Price Prediction");
 
-            _models.ForEach(x => x.Workflow = workflow);
         }
 
         // GET: api/<ModelsController>
         [HttpGet]
-        public IEnumerable<MlModelDto> Get()
+        public IActionResult Get()
         {
-            return _models;
+            var models = _dbContext.MLModels.ToList().Select(x =>
+            {
+                _dbContext.Entry(x).Reference(p => p.Workflow).Load();
+
+                var dto = new MlModelDto
+                {
+                    Name = x.Workflow.Name,
+                    Status = x.Workflow.IsPublished ?? false ? "Published" : "Submitted",
+                    Id = x.Id,
+                    CreatedBy = x.CreatedBy,
+                    CreatedOn = x.CreatedOn,
+                    ModifiedBy = x.ModifiedBy,
+                    ModifiedOn = x.ModifiedOn
+                };
+
+                return dto;
+            });
+
+
+            return Ok(models);
         }
 
         // GET api/<ModelsController>/5
         [HttpGet("{id}")]
-        public MlModelDto? Get(int id)
+        public async Task<IActionResult> Get(int id)
         {
-            return _models.FirstOrDefault(x => x.Id == id);
+            var model = await _dbContext.MLModels.FindAsync(id);
+
+            if (model is null)
+            {
+                return NotFound("Model not found");
+            }
+
+            return Ok(model);
         }
 
         // POST api/<ModelsController>

@@ -35,7 +35,10 @@ namespace AIaaS.WebAPI.Controllers
         [HttpGet]
         public async Task<ActionResult> Get()
         {
-            var datasets = await _dbContext.Datasets.ToListAsync();
+            var datasets = await _dbContext.Datasets
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+
             var dtos = datasets.Select(x => new DatasetDto
             {
                 Id = x.Id,
@@ -45,7 +48,7 @@ namespace AIaaS.WebAPI.Controllers
                 CreatedOn = x.CreatedOn,
                 ModifiedBy = x.ModifiedBy,
                 ModifiedOn = x.ModifiedOn,
-                ColumnSettings = x.ColumnSettings.Select(x => new ColumnSettingDto
+                ColumnSettings = x.ColumnSettings.OrderBy(c => c.ColumnName).Select(x => new ColumnSettingDto
                 {
                     ColumnName = x.ColumnName,
                     Id = x.Id,
@@ -370,7 +373,7 @@ namespace AIaaS.WebAPI.Controllers
                 }
             }
 
-           
+
         }
 
 

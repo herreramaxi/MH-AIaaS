@@ -150,5 +150,22 @@ namespace AIaaS.WebAPI.Controllers
             };
         }
 
+
+        [HttpPost("publish")]
+        public async Task<IActionResult> Publish([FromServices] IWorkflowService workflowService, WorkflowDto workflowDto)
+        {
+            if (workflowDto?.Id is null || workflowDto.Id <= 0)
+                return BadRequest("Id parameter should be greater than zero");
+
+            var workflow = await _dbContext.FindAsync<Workflow>(workflowDto.Id);
+
+            if (workflow is null)
+                return NotFound();
+
+            workflow.IsPublished = true;
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(workflowDto);
+        }
     }
 }
