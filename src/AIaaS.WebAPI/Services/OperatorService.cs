@@ -47,7 +47,8 @@ namespace AIaaS.WebAPI.Services
                 {
                     Name = x.Name,
                     Description = x.Description,
-                    Type = x.Type
+                    Type = x.Type,
+                    Default = x.Default
                 }).ToList();
             }
 

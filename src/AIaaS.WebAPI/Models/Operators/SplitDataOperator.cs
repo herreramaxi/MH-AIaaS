@@ -4,7 +4,7 @@ using AIaaS.WebAPI.Models.enums;
 namespace AIaaS.WebAPI.Models.Operators
 {
     [Operator("Split Data", OperatorType.Split, 3)]
-    [OperatorParameter("Test Fraction", "The fraction of data to go into the test set", "text")]
+    [OperatorParameter("Test Fraction", "The fraction of data to go into the test set", "text", "0.2")]
     public class SplitDataOperator : WorkflowOperatorAbstract
     {
         private double _fraction;
@@ -37,7 +37,7 @@ namespace AIaaS.WebAPI.Models.Operators
 
         public override Task Run(WorkflowContext context, WorkflowNodeDto root)
         {
-            var mlContext = context.MLContext;          
+            var mlContext = context.MLContext;
 
             if (context.DataView is null)
             {

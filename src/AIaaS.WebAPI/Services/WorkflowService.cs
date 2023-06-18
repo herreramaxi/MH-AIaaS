@@ -12,11 +12,13 @@ namespace AIaaS.WebAPI.Services
     {
         private readonly IEnumerable<IWorkflowOperator> _workflowOperators;
         private readonly EfContext _dbContext;
+        private readonly ILogger<IWorkflowService> _logger;
 
-        public WorkflowService(IEnumerable<IWorkflowOperator> workflowOperators, EfContext dbContext)
+        public WorkflowService(IEnumerable<IWorkflowOperator> workflowOperators, EfContext dbContext, ILogger<IWorkflowService> logger)
         {
             _workflowOperators = workflowOperators;
             _dbContext = dbContext;
+            _logger = logger;
         }
 
         public async Task<Result<WorkflowDto>> Save(WorkflowDto workflowDto)
@@ -30,7 +32,7 @@ namespace AIaaS.WebAPI.Services
             var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
             if (workflow == null)
                 return Result.NotFound();
-                       
+
             workflow.Data = workflowDto.Root;
 
             _dbContext.Workflows.Update(workflow);
@@ -44,80 +46,98 @@ namespace AIaaS.WebAPI.Services
 
         public async Task<Result<WorkflowDto>> Run(WorkflowDto workflowDto)
         {
-            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
-
-            if (workflow is null)
+            try
             {
-                return Result.NotFound("Workflow not found");
+                var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+
+                if (workflow is null)
+                {
+                    return Result.NotFound("Workflow not found");
+                }
+
+                if (string.IsNullOrEmpty(workflowDto?.Root))
+                {
+                    return Result.Error("Workflow is required, root property is empty");
+                }
+
+                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
+
+                if (workflowGraphDto is null)
+                {
+                    return Result.Error("Not able to process workflow");
+                }
+
+                var context = new WorkflowContext()
+                {
+                    MLContext = new MLContext(seed: 0),
+                    Workflow = workflow,
+                    RunWorkflow = true
+                };
+
+                await TraverseTreeDFS(workflowGraphDto.Root, context);
+
+                workflowDto.Root = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+                workflow.Data = workflowDto.Root;
+
+                _dbContext.Workflows.Update(workflow);
+                await _dbContext.SaveChangesAsync();
+
+                workflowDto.ModifiedOn = workflow.ModifiedOn;
+                workflowDto.ModifiedBy = workflow.ModifiedBy;
+
+                return Result.Success(workflowDto);
             }
-
-            if (string.IsNullOrEmpty(workflowDto?.Root))
+            catch (Exception ex)
             {
-                return Result.Error("Workflow is required, root property is empty");
+                _logger.LogError(ex, "Error when running workflow", ex.Message);
+
+                return Result.Error($"Error when running workflow: {ex.Message}");
             }
-
-            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
-
-            if (workflowGraphDto is null)
-            {
-                return Result.Error("Not able to process workflow");
-            }
-
-            var context = new WorkflowContext()
-            {
-                MLContext = new MLContext(seed: 0),
-                Workflow = workflow,
-                RunWorkflow = true
-            };
-
-            await TraverseTreeDFS(workflowGraphDto.Root, context);
-
-            workflowDto.Root = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-
-            workflow.Data = workflowDto.Root;
-
-            _dbContext.Workflows.Update(workflow);
-            await _dbContext.SaveChangesAsync();
-
-            workflowDto.ModifiedOn = workflow.ModifiedOn;
-            workflowDto.ModifiedBy = workflow.ModifiedBy;
-
-            return Result.Success(workflowDto);
         }
 
         public async Task<Result<WorkflowDto>> Validate(WorkflowDto workflowDto)
         {
-            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
-
-            if (workflow is null)
+            try
             {
-                return Result.NotFound("Workflow not found");
+                var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+
+                if (workflow is null)
+                {
+                    return Result.NotFound("Workflow not found");
+                }
+
+                if (workflowDto.Root is null)
+                {
+                    return Result.Error("Not able to process workflow, root property is empty");
+                }
+
+                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
+
+                if (workflowGraphDto is null)
+                {
+                    return Result.Error("Not able to process workflow, deserealization failed");
+                }
+
+                var context = new WorkflowContext()
+                {
+                    MLContext = new MLContext(seed: 0),
+                    Workflow = workflow
+                };
+
+                await TraverseTreeDFS(workflowGraphDto.Root, context);
+
+                workflowDto.Root = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                return Result.Success(workflowDto);
             }
-
-            if (workflowDto.Root is null)
+            catch (Exception ex)
             {
-                return Result.Error("Not able to process workflow, root property is empty");
+                _logger.LogError(ex, "Error when validating workflow", ex.Message);
+
+                return Result.Error($"Error when validating workflow: {ex.Message}");
             }
-
-            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
-
-            if (workflowGraphDto is null)
-            {
-                return Result.Error("Not able to process workflow, deserealization failed");
-            }
-
-            var context = new WorkflowContext()
-            {
-                MLContext = new MLContext(seed: 0),
-                Workflow = workflow
-            };
-
-            await TraverseTreeDFS(workflowGraphDto.Root, context);
-
-            workflowDto.Root = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-            return Result.Success(workflowDto);
         }
 
         private async Task TraverseTreeDFS(WorkflowNodeDto? root, WorkflowContext context)
