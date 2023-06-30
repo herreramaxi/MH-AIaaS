@@ -58,7 +58,7 @@ jobs:
             echo 'export JWT_ISSUER="$JWT_ISSUER"' >> $BASH_ENV
             echo 'export AUTH0_JWKS="AUTH0_JWKS"' >> $BASH_ENV
             source $BASH_ENV
-            ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "rm -rf MH-AIaaS; git clone https://github.com/herreramaxi/MH-AIaaS.git; source MH-AIaaS/deploy.sh"
+            ssh -o StrictHostKeyChecking=no "$EC2_USERNAME"@"$EC2_PUBLIC_DNS" "rm -rf MH-AIaaS; git clone https://github.com/herreramaxi/MH-AIaaS.git; source MH-AIaaS/deploy.sh"
           environment:
             EC2_USERNAME: $EC2_USERNAME
             EC2_PUBLIC_DNS: $EC2_PUBLIC_DNS
