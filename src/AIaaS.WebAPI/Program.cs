@@ -181,7 +181,6 @@ var requiredVars =
           "AUTH0_AUDIENCE",
           "AUTH0_JWKS",
           "JWT_ISSUER",
-          "JWT_SECRET",
           "DATABASE_CONNECTIONSTRING"
     };
 
