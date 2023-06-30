@@ -2,15 +2,15 @@
 {
     public class BinaryClasifficationMetricsDto
     {
-        public double LogLossReduction { get; set; }
-        public double Accuracy { get; set; }
-        public double LogLoss { get; set; }
-        public double NegativeRecall { get; set; }
-        public double PositiveRecall { get; set; }
-        public double AreaUnderPrecisionRecallCurve { get; set; }
-        public double AreaUnderRocCurve { get; set; }
-        public double Entropy { get; set; }
-        public double F1Score { get; set; }
+        public string LogLossReduction { get; set; }
+        public string Accuracy { get; set; }
+        public string LogLoss { get; set; }
+        public string NegativeRecall { get; set; }
+        public string PositiveRecall { get; set; }
+        public string AreaUnderPrecisionRecallCurve { get; set; }
+        public string AreaUnderRocCurve { get; set; }
+        public string Entropy { get; set; }
+        public string F1Score { get; set; }
         public string Task { get; set; }
     }
 }

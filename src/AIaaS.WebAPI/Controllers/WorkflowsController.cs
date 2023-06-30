@@ -5,6 +5,7 @@ using AIaaS.WebAPI.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace AIaaS.WebAPI.Controllers
 {
@@ -46,6 +47,7 @@ namespace AIaaS.WebAPI.Controllers
                 Name = workflow.Name,
                 Description = workflow.Description,
                 IsPublished = workflow.IsPublished,
+                IsModelGenerated = workflow.IsModelGenerated,
                 CreatedBy = workflow.CreatedBy,
                 CreatedOn = workflow.CreatedOn,
                 ModifiedBy = workflow.ModifiedBy,
@@ -58,15 +60,32 @@ namespace AIaaS.WebAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> Create()
         {
+            var userEmail = this.User.FindFirst(ClaimTypes.Email)?.Value;
+            if (userEmail == null)
+                return BadRequest("User email not found on request");
+
+            var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Email.ToLower().Equals(userEmail.ToLower()));
+            if (user == null)
+                return BadRequest("User not found");
+
             var workflow = new Workflow()
             {
-                Name = $"Workflow-created ({DateTime.Now})"
+                Name = $"Workflow-created ({DateTime.Now})",
+                User = user
             };
 
             await _dbContext.Workflows.AddAsync(workflow);
             await _dbContext.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetById), new { id = workflow.Id }, workflow);
+            var dto = new WorkflowDto
+            {
+                Name = workflow.Name,
+                Id = workflow.Id,
+                CreatedBy = user.CreatedBy,
+                CreatedOn = user.CreatedOn
+            };
+
+            return CreatedAtAction(nameof(GetById), new { id = workflow.Id }, dto);
         }
 
         [HttpPut]

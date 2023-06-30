@@ -299,7 +299,6 @@ namespace AIaaS.WebAPI.Controllers
                 filePath = await SaveTempFile(file);
 
                 using var reader = file.OpenReadStream();
-                using var tr = new StreamReader(reader);
                 using var memStream = new MemoryStream();
                 await reader.CopyToAsync(memStream);
 
@@ -307,10 +306,10 @@ namespace AIaaS.WebAPI.Controllers
                 {
                     FileName = file.FileName,
                     Size = file.Length,
-                    Dataset = dataset
+                    Dataset = dataset,
+                    Data = memStream.ToArray()
                 };
-
-                fileStorage.Data = memStream.ToArray();
+                              
                 await _dbContext.FileStorages.AddAsync(fileStorage);
                 await _dbContext.SaveChangesAsync();
 

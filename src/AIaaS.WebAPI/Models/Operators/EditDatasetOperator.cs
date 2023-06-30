@@ -1,4 +1,5 @@
-﻿using AIaaS.WebAPI.Models.Dtos;
+﻿using AIaaS.WebAPI.Models.CustomAttributes;
+using AIaaS.WebAPI.Models.Dtos;
 using AIaaS.WebAPI.Models.enums;
 using Microsoft.ML;
 using Microsoft.ML.Data;
@@ -89,6 +90,10 @@ namespace AIaaS.WebAPI.Models.Operators
                     context.EstimatorChain.Append(estimator) :
                     estimator;
             }
+
+            //var transformer = context.EstimatorChain.Fit(context.DataView);
+            //var dataview = transformer.Transform(context.DataView);
+            //var preview = dataview.Preview(50);
 
             return Task.CompletedTask;
         }

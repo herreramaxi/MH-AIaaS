@@ -43,6 +43,13 @@ namespace ConsoleAppTest
             // Save model
             SaveModel(mlContext, model, ModelPath, testData.Schema);
 
+            var input = new TransactionObservation { };
+
+            var predEngine = mlContext.Model.CreatePredictionEngine<TransactionObservation, TransactionPrediction>(model);
+
+            //Score
+            var resultprediction = predEngine.Predict(input);
+
             Console.WriteLine("=============== Press any key ===============");
             Console.ReadKey();
 
@@ -153,6 +160,12 @@ namespace ConsoleAppTest
         void PrintToConsole();
     }
 
+
+    public class TransactionPrediction
+    {
+        [ColumnName("Score")]
+        public float Value;
+    }
     public class TransactionObservation : IModelEntity
     {
         // Note we're not loading the 'Time' column, since que don't need it as a feature

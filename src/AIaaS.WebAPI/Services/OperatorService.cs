@@ -1,5 +1,5 @@
 ﻿using AIaaS.WebAPI.Interfaces;
-using AIaaS.WebAPI.Models;
+using AIaaS.WebAPI.Models.CustomAttributes;
 using AIaaS.WebAPI.Models.Dtos;
 
 namespace AIaaS.WebAPI.Services

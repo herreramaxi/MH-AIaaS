@@ -1,6 +1,6 @@
 ﻿using AIaaS.WebAPI.Models.enums;
 
-namespace AIaaS.WebAPI.Models
+namespace AIaaS.WebAPI.Models.CustomAttributes
 {
     [AttributeUsage(AttributeTargets.Class)]
     public class OperatorAttribute : Attribute
@@ -13,6 +13,6 @@ namespace AIaaS.WebAPI.Models
             Name = name;
             Type = type.ToString();
             Order = order;
-        }      
+        }
     }
 }

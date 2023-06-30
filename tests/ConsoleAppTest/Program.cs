@@ -24,6 +24,9 @@ namespace Regression_TaxiFarePrediction
             //ReplaceMissingValues();
             //var dbContext = new EfContext();
 
+            var titanicPrediction = new TitanicPrediction();
+            titanicPrediction.Run();
+
             var cardFraud = new CreditCardFraudDetection();
             cardFraud.Run();
 

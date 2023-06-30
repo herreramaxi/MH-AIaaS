@@ -1,4 +1,4 @@
-﻿namespace AIaaS.WebAPI.Models
+﻿namespace AIaaS.WebAPI.Models.CustomAttributes
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class OperatorParameterAttribute : Attribute

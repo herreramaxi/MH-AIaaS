@@ -1,5 +1,6 @@
 ﻿namespace AIaaS.WebAPI.Models
 {
+    using AIaaS.WebAPI.ExtensionMethods;
     using Microsoft.ML;
     using Microsoft.ML.Data;
     using System;
@@ -10,22 +11,41 @@
     public static class ClassFactory
     {
 
-        public static object CreateObject(string[] PropertyNames, Type[] Types, bool[] addColumnName = null)
+        //public static object CreateObject(string[] PropertyNames, Type[] Types, string[]? columnNamesCustomAttr = null)
+        //{
+        //    if (PropertyNames.Length != Types.Length)
+        //    {
+        //        Console.WriteLine("The number of property names should match their corresponding types number");
+        //    }
+
+        //    TypeBuilder DynamicClass = CreateTypeBuilder();
+        //    CreateConstructor(DynamicClass);
+        //    for (int i = 0; i < PropertyNames.Count(); i++)
+        //    {
+        //        var columnNameCustomAttr = columnNamesCustomAttr?.Any() == true ? columnNamesCustomAttr[i] : null;
+        //        CreateProperty(DynamicClass, PropertyNames[i], Types[i], columnNameCustomAttr);
+        //    }
+        //    Type type = DynamicClass.CreateType();
+
+        //    return Activator.CreateInstance(type);
+        //}
+
+        public static Type CreateType(IEnumerable<(string, Type, string)> properties)
         {
-            if (PropertyNames.Length != Types.Length)
+            return CreateType(properties.ToArray());
+        }
+
+        public static Type CreateType((string, Type, string)[] properties)
+        {
+            var typeBuilder = CreateTypeBuilder();
+            CreateConstructor(typeBuilder);
+
+            foreach (var propertyType in properties)
             {
-                Console.WriteLine("The number of property names should match their corresponding types number");
+                CreateProperty(typeBuilder, propertyType.Item1, propertyType.Item2, propertyType.Item3);
             }
 
-            TypeBuilder DynamicClass = CreateTypeBuilder();
-            CreateConstructor(DynamicClass);
-            for (int ind = 0; ind < PropertyNames.Count(); ind++)
-            {
-                CreateProperty(DynamicClass, PropertyNames[ind], Types[ind], addColumnName != null ? addColumnName[ind] : false);
-            }
-            Type type = DynamicClass.CreateType();
-
-            return Activator.CreateInstance(type);
+            return typeBuilder.CreateType();
         }
 
         public static Type CreateType(IEnumerable<(string, Type)> properties)
@@ -47,7 +67,7 @@
             CreateConstructor(typeBuilder);
             foreach (var item in dataViewSchema)
             {
-                CreateProperty(typeBuilder, item.Name, item.Type.RawType);
+                CreateProperty(typeBuilder, item.Name, item.Type.ToRawType());
             }
 
             return typeBuilder.CreateType();
@@ -73,7 +93,7 @@
             typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
         }
 
-        private static void CreateProperty(TypeBuilder typeBuilder, string propertyName, Type propertyType, bool addColumnName = false)
+        private static void CreateProperty(TypeBuilder typeBuilder, string propertyName, Type propertyType, string? columnNameCustomAttribute = null)
         {
             FieldBuilder fieldBuilder = typeBuilder.DefineField("_" + propertyName, propertyType, FieldAttributes.Private);
 
@@ -112,13 +132,12 @@
             propertyBuilder.SetGetMethod(getPropMthdBldr);
             propertyBuilder.SetSetMethod(setPropMthdBldr);
 
-            if (addColumnName)
+            if (!string.IsNullOrEmpty(columnNameCustomAttribute))
             {
-
                 var constructorInfo = typeof(ColumnNameAttribute).GetConstructor(new Type[] { typeof(string) });
                 if (constructorInfo == null) return;
 
-                var attrBuilder = new CustomAttributeBuilder(constructorInfo, new object[] { "Score" });
+                var attrBuilder = new CustomAttributeBuilder(constructorInfo, new object[] { columnNameCustomAttribute });
                 propertyBuilder.SetCustomAttribute(attrBuilder);
             }
         }

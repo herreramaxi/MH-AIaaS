@@ -172,7 +172,7 @@ namespace ConsoleAppTest
 
             ///
             ITransformer trainedModel = mlContext.Model.Load(ModelPath, out var modelInputSchema);
-
+        
             // Create prediction engine related to the loaded trained model
             var predEngine = mlContext.Model.CreatePredictionEngine<HousingRow, HousingRowPrediction>(trainedModel);
 

@@ -192,6 +192,55 @@ namespace AIaaS.WebAPI.Migrations
                     b.ToTable("FileStorages");
                 });
 
+            modelBuilder.Entity("AIaaS.WebAPI.Models.MLEndpoint", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApiKey")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("AuthenticationType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MLModelId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MLModelId")
+                        .IsUnique();
+
+                    b.ToTable("Endpoints");
+                });
+
             modelBuilder.Entity("AIaaS.WebAPI.Models.MLModel", b =>
                 {
                     b.Property<int>("Id")
@@ -321,6 +370,9 @@ namespace AIaaS.WebAPI.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool?>("IsModelGenerated")
+                        .HasColumnType("bit");
+
                     b.Property<bool?>("IsPublished")
                         .HasColumnType("bit");
 
@@ -334,7 +386,12 @@ namespace AIaaS.WebAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Workflows");
                 });
@@ -383,6 +440,17 @@ namespace AIaaS.WebAPI.Migrations
                     b.Navigation("Dataset");
                 });
 
+            modelBuilder.Entity("AIaaS.WebAPI.Models.MLEndpoint", b =>
+                {
+                    b.HasOne("AIaaS.WebAPI.Models.MLModel", "MLModel")
+                        .WithOne("Endpoint")
+                        .HasForeignKey("AIaaS.WebAPI.Models.MLEndpoint", "MLModelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MLModel");
+                });
+
             modelBuilder.Entity("AIaaS.WebAPI.Models.MLModel", b =>
                 {
                     b.HasOne("AIaaS.WebAPI.Models.Workflow", "Workflow")
@@ -405,6 +473,17 @@ namespace AIaaS.WebAPI.Migrations
                     b.Navigation("MLModel");
                 });
 
+            modelBuilder.Entity("AIaaS.WebAPI.Models.Workflow", b =>
+                {
+                    b.HasOne("AIaaS.WebAPI.Models.User", "User")
+                        .WithMany("Workflows")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("AIaaS.WebAPI.Models.Dataset", b =>
                 {
                     b.Navigation("ColumnSettings");
@@ -416,12 +495,16 @@ namespace AIaaS.WebAPI.Migrations
 
             modelBuilder.Entity("AIaaS.WebAPI.Models.MLModel", b =>
                 {
+                    b.Navigation("Endpoint");
+
                     b.Navigation("ModelMetrics");
                 });
 
             modelBuilder.Entity("AIaaS.WebAPI.Models.User", b =>
                 {
                     b.Navigation("Datasets");
+
+                    b.Navigation("Workflows");
                 });
 
             modelBuilder.Entity("AIaaS.WebAPI.Models.Workflow", b =>

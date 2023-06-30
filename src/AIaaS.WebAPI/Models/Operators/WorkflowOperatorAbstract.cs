@@ -1,4 +1,5 @@
 ﻿using AIaaS.WebAPI.Interfaces;
+using AIaaS.WebAPI.Models.CustomAttributes;
 using AIaaS.WebAPI.Models.Dtos;
 
 namespace AIaaS.WebAPI.Models.Operators
@@ -16,13 +17,8 @@ namespace AIaaS.WebAPI.Models.Operators
             Type = operatorAttribute.Type;
         }
 
-        public virtual void Preprocessing(WorkflowContext context, WorkflowNodeDto parent, WorkflowNodeDto? child)
+        public virtual void Preprocessing(WorkflowContext context, WorkflowNodeDto parent)
         {
-            if (child is not null)
-            {
-                child.Parent = parent;
-            }
-
             if (parent.Data is null) return;
 
             parent.Data.IsFailed = false;

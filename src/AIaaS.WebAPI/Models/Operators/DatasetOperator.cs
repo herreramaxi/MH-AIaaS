@@ -1,4 +1,5 @@
 ﻿using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.Models.CustomAttributes;
 using AIaaS.WebAPI.Models.Dtos;
 using AIaaS.WebAPI.Models.enums;
 using CsvHelper;
@@ -82,6 +83,9 @@ namespace AIaaS.WebAPI.Models.Operators
 
             //TODO: propagate this columns, so if I add editDataset operator, then it will modify and propagate those columns
             context.ColumnSettings = context.Dataset.ColumnSettings.Where(x => _selectedColumns.Contains(x.ColumnName, StringComparer.InvariantCultureIgnoreCase));
+            var columnsToBeDropped = context.Dataset.ColumnSettings.Where(x => !_selectedColumns.Contains(x.ColumnName, StringComparer.InvariantCultureIgnoreCase))
+                .Select(x => x.ColumnName)
+                .ToArray();
 
             //TODO: check how to manage usings cos if I dispose IDataview cannot be processed
             var memStream = new MemoryStream(dataset.DataViewFile.Data);
@@ -90,11 +94,26 @@ namespace AIaaS.WebAPI.Models.Operators
             context.DataView = mlContext.Data.LoadFromBinary(mss);
             context.InputOutputColumns = context.ColumnSettings.Select(x => new InputOutputColumnPair(x.ColumnName, x.ColumnName)).ToArray();
             //var preview = context.DataView.Preview();
+
+            if (columnsToBeDropped.Any())
+            {
+                var estimator = context.MLContext.Transforms.DropColumns(columnsToBeDropped);
+
+                context.EstimatorChain = context.EstimatorChain is not null ?
+                context.EstimatorChain.Append(estimator) :
+                estimator;
+
+                //var transformedData = estimator.Fit(context.DataView).Transform(context.DataView);
+            }
+
+            //var transformer = context.EstimatorChain.Fit(context.DataView);
+            //var dataview = transformer.Transform(context.DataView);
+            //var preview = dataview.Preview(50);
         }
 
         public override void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root)
         {
-            root.SetDatasetColumns( _selectedColumns);
+            root.SetDatasetColumns(_selectedColumns);
         }
 
         public IDataView NewMethod<T>(MLContext mlContext, StreamReader tr, SchemaDefinition schemaDefinition) where T : class
@@ -113,7 +132,7 @@ namespace AIaaS.WebAPI.Models.Operators
         public IEnumerable<T> GetRecordsMethod<T>(CsvReader csvReader)
         {
             return csvReader.GetRecords<T>();
-        }      
+        }
     }
 
     public class SalesRow

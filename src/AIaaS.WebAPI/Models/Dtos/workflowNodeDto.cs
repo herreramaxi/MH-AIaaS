@@ -1,10 +1,14 @@
-﻿namespace AIaaS.WebAPI.Models.Dtos
+﻿using System.Text.Json.Serialization;
+
+namespace AIaaS.WebAPI.Models.Dtos
 {
     public class WorkflowNodeDto : OperatorDto
     {
         public string Id { get; set; }
         public IList<WorkflowNodeDto>? Children { get; set; }
         public IList<string> OutputColumns { get; set; }
+
+        [JsonIgnore]
         public WorkflowNodeDto? Parent { get;  set; }
 
         public void SetAsFailed(string errorMessage)

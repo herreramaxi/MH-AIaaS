@@ -1,4 +1,5 @@
 ﻿using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.ExtensionMethods;
 using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Models;
 using AIaaS.WebAPI.Models.Dtos;
@@ -75,17 +76,25 @@ namespace AIaaS.WebAPI.Services
                     RunWorkflow = true
                 };
 
-                await TraverseTreeDFS(workflowGraphDto.Root, context);
+                var nodes = workflowGraphDto.Root.ToList(true);
 
-                workflowDto.Root = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                foreach (var node in nodes)
+                {
+                    await this.ProcessNode(node, context);
+                }               
 
-                workflow.Data = workflowDto.Root;
+                var workflowSerialized = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+                workflow.Data = workflowSerialized;
+                workflow.IsModelGenerated = true;
 
                 _dbContext.Workflows.Update(workflow);
                 await _dbContext.SaveChangesAsync();
 
+                workflowDto.Root = workflow.Data;
                 workflowDto.ModifiedOn = workflow.ModifiedOn;
                 workflowDto.ModifiedBy = workflow.ModifiedBy;
+                workflowDto.IsModelGenerated = true;
 
                 return Result.Success(workflowDto);
             }
@@ -127,7 +136,14 @@ namespace AIaaS.WebAPI.Services
                     Workflow = workflow
                 };
 
-                await TraverseTreeDFS(workflowGraphDto.Root, context);
+                var nodes = workflowGraphDto.Root.ToList(true);
+
+                foreach (var node in nodes)
+                {
+                    await this.ProcessNode(node, context);
+                }
+
+                //await TraverseTreeDFS(workflowGraphDto.Root, context);
 
                 workflowDto.Root = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
                 return Result.Success(workflowDto);
@@ -140,40 +156,72 @@ namespace AIaaS.WebAPI.Services
             }
         }
 
-        private async Task TraverseTreeDFS(WorkflowNodeDto? root, WorkflowContext context)
+        private async Task ProcessNode(WorkflowNodeDto node, WorkflowContext context)
         {
-            if (root is null)
+            if (node is null)
                 return;
 
-            var workflowOperator = _workflowOperators.FirstOrDefault(x => x.Type.Equals(root.Type, StringComparison.InvariantCultureIgnoreCase));
+            var workflowOperator = _workflowOperators.FirstOrDefault(x => x.Type.Equals(node.Type, StringComparison.InvariantCultureIgnoreCase));
             if (workflowOperator is null)
             {
-                root.SetAsFailed($"Workflow operator not found for type {root.Type}");
+                node.SetAsFailed($"Workflow operator not found for type {node.Type}");
                 return;
             }
-
-            var child = root.Children?.FirstOrDefault();
-
+                      
             try
             {
-                workflowOperator.Preprocessing(context, root, child);
-                await workflowOperator.Hydrate(context, root);
-                workflowOperator.PropagateDatasetColumns(context, root);
-                var isValid = workflowOperator.Validate(context, root);
-                workflowOperator.Postprocessing(context, root);
-
+                workflowOperator.Preprocessing(context, node);
+                await workflowOperator.Hydrate(context, node);
+                workflowOperator.PropagateDatasetColumns(context, node);
+                var isValid = workflowOperator.Validate(context, node);
+                
                 if (context.RunWorkflow && isValid)
                 {
-                    await workflowOperator.Run(context, root);
+                    await workflowOperator.Run(context, node);
                 }
             }
             catch (Exception ex)
             {
-                root.SetAsFailed($"Error when executing operator {root.Type}");
+                node.SetAsFailed($"Error when executing operator {node.Type}: {ex.Message}");
                 return;
             }
-
-            await TraverseTreeDFS(child, context);
         }
+
+       
+
+        //private async Task TraverseTreeDFS(WorkflowNodeDto? root, WorkflowContext context)
+        //{
+        //    if (root is null)
+        //        return;
+
+        //    var workflowOperator = _workflowOperators.FirstOrDefault(x => x.Type.Equals(root.Type, StringComparison.InvariantCultureIgnoreCase));
+        //    if (workflowOperator is null)
+        //    {
+        //        root.SetAsFailed($"Workflow operator not found for type {root.Type}");
+        //        return;
+        //    }
+
+        //    var child = root.Children?.FirstOrDefault();
+
+        //    try
+        //    {
+        //        workflowOperator.Preprocessing(context, root);
+        //        await workflowOperator.Hydrate(context, root);
+        //        workflowOperator.PropagateDatasetColumns(context, root);
+        //        var isValid = workflowOperator.Validate(context, root);
+        //        //workflowOperator.Postprocessing(context, root);
+        //        if (context.RunWorkflow && isValid)
+        //        {
+        //            await workflowOperator.Run(context, root);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        root.SetAsFailed($"Error when executing operator {root.Type}: {ex.Message}");
+        //        return;
+        //    }           
+
+        //    await TraverseTreeDFS(child, context);
+        //}
     }
 }

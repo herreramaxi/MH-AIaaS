@@ -21,7 +21,8 @@ namespace AIaaS.UnitTests
 {
     public class WorkflowTests : IClassFixture<TestDatabaseFixture>, IDisposable
     {
-        public TestDatabaseFixture Fixture { get; }private EfContext _dbContext;
+        public TestDatabaseFixture Fixture { get; }
+        private EfContext _dbContext;
         private readonly ITestOutputHelper _testOutputHelper;
 
         public WorkflowTests(TestDatabaseFixture fixture, ITestOutputHelper testOutputHelper)
@@ -46,7 +47,7 @@ namespace AIaaS.UnitTests
         {
             var dataPath = "advertisingWithMissingValues.csv";
             var mlContext = new MLContext();
-            ColumnInferenceResults columnInference = mlContext.Auto().InferColumns(dataPath, labelColumnName: "Sales",groupColumns: false);
+            ColumnInferenceResults columnInference = mlContext.Auto().InferColumns(dataPath, labelColumnName: "Sales", groupColumns: false);
             TextLoader loader = mlContext.Data.CreateTextLoader(columnInference.TextLoaderOptions);
             IDataView data = loader.Load(dataPath);
             var preview = data.Preview();
@@ -144,7 +145,7 @@ namespace AIaaS.UnitTests
 
             var predEngine = mlContext.Model.CreatePredictionEngine<AdvertisingRow, AdvertisingRowPrediction>(model);
             var runtimeType = ClassFactory.CreateType(modelInputSchema);
-            var predictionObject = ClassFactory.CreateObject(new string[] { "Sales" }, new Type[] { typeof(float) }, new[] { true });
+            var predictionType = ClassFactory.CreateType(new[] { ("Sales", typeof(float), "Score") });
 
             dynamic sample = Activator.CreateInstance(runtimeType);//ClassFactory.CreateObject(new string[] { "Tv", "Radio", "Newspaper", "Sales" }, new Type[] { typeof(float), typeof(float), typeof(float), typeof(float) });
             sample.TV = 232;
@@ -157,7 +158,7 @@ namespace AIaaS.UnitTests
             //SchemaDefinition inputSchemaDefinition = null, SchemaDefinition outputSchemaDefinition = null
             var genericPredictionMethod = mlContext.Model.GetType().GetMethod("CreatePredictionEngine", new[] { typeof(ITransformer), typeof(bool), typeof(SchemaDefinition), typeof(SchemaDefinition) });
             //var predictionMethod = genericPredictionMethod.MakeGenericMethod(typeof(AdvertisingRow),typeof(AdvertisingRowPrediction));// predictionObject.GetType());
-            var predictionMethod = genericPredictionMethod.MakeGenericMethod(runtimeType, predictionObject.GetType());// predictionObject.GetType());
+            var predictionMethod = genericPredictionMethod.MakeGenericMethod(runtimeType, predictionType);// predictionObject.GetType());
             dynamicPredictionEngine = predictionMethod.Invoke(mlContext.Model, new object[] { model, true, null, null });
 
             //Score
@@ -257,7 +258,7 @@ namespace AIaaS.UnitTests
 
             var predEngine = mlContext.Model.CreatePredictionEngine<AdvertisingRow, AdvertisingRowPrediction>(model);
             var runtimeType = ClassFactory.CreateType(modelInputSchema);
-            var predictionObject = ClassFactory.CreateObject(new string[] { "Sales" }, new Type[] { typeof(float) }, new[] { true });
+            var predictionType = ClassFactory.CreateType(new[] { ("Sales", typeof(float), "Score") });
 
             dynamic sample = Activator.CreateInstance(runtimeType);//ClassFactory.CreateObject(new string[] { "Tv", "Radio", "Newspaper", "Sales" }, new Type[] { typeof(float), typeof(float), typeof(float), typeof(float) });
             sample.TV = 232;
@@ -270,7 +271,7 @@ namespace AIaaS.UnitTests
             //SchemaDefinition inputSchemaDefinition = null, SchemaDefinition outputSchemaDefinition = null
             var genericPredictionMethod = mlContext.Model.GetType().GetMethod("CreatePredictionEngine", new[] { typeof(ITransformer), typeof(bool), typeof(SchemaDefinition), typeof(SchemaDefinition) });
             //var predictionMethod = genericPredictionMethod.MakeGenericMethod(typeof(AdvertisingRow),typeof(AdvertisingRowPrediction));// predictionObject.GetType());
-            var predictionMethod = genericPredictionMethod.MakeGenericMethod(runtimeType, predictionObject.GetType());// predictionObject.GetType());
+            var predictionMethod = genericPredictionMethod.MakeGenericMethod(runtimeType, predictionType);// predictionObject.GetType());
             dynamicPredictionEngine = predictionMethod.Invoke(mlContext.Model, new object[] { model, true, null, null });
 
             //Score
@@ -319,14 +320,15 @@ namespace AIaaS.UnitTests
         [Fact]
         public void Test5()
         {
-            
+
             var dataFrame = DataFrame.LoadCsv("advertising.csv");
             var dataFrame2 = dataFrame.Description();
             var dataFrame3 = dataFrame.Info();
         }
 
         [Fact]
-        public async  void Test6() {
+        public async void Test6()
+        {
             var dataset = await _dbContext.Datasets.FindAsync(1030);
             if (dataset is null)
                 throw new Exception("Dataset not found");
@@ -351,18 +353,19 @@ namespace AIaaS.UnitTests
 
             var pipeline = mlContext1.Transforms.ReplaceMissingValues(context.InputOutputColumns, Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode.Mean);
             var transformer = pipeline.Fit(dataview);
-           var dataview1  =  transformer.Transform(dataview);
+            var dataview1 = transformer.Transform(dataview);
             var preview1 = dataview1.Preview();
 
             var mlContext2 = new MLContext();
-            var pipeline2  = mlContext2.Transforms.NormalizeMeanVariance(context.InputOutputColumns);
+            var pipeline2 = mlContext2.Transforms.NormalizeMeanVariance(context.InputOutputColumns);
             var transformer2 = pipeline2.Fit(dataview1);
             var dataview2 = transformer.Transform(dataview1);
             var preview2 = dataview2.Preview();
         }
 
         [Fact]
-        public void Test7() {
+        public void Test7()
+        {
             TextLoader.Column[] columns = new TextLoader.Column[] {
                 new TextLoader.Column("TV",DataKind.Single,0),
             new TextLoader.Column("Radio",DataKind.Single,1),
@@ -381,7 +384,7 @@ namespace AIaaS.UnitTests
             IDataView dataView0 = mlContext.Data.LoadFromTextFile("advertisingWithMissingValues.csv", options: options);
             var preview0 = dataView0.Preview();
 
-            var inputOutputColumns2 = columns.Select(x => new InputOutputColumnPair(x.Name +"_Missing", x.Name)).ToArray();
+            var inputOutputColumns2 = columns.Select(x => new InputOutputColumnPair(x.Name + "_Missing", x.Name)).ToArray();
 
             //var pipeline = mlContext.Transforms.IndicateMissingValues(inputOutputColumns2);
 

@@ -1,5 +1,6 @@
 ﻿
 
+using AIaaS.WebAPI.Models.CustomAttributes;
 using AIaaS.WebAPI.Models.Dtos;
 using AIaaS.WebAPI.Models.enums;
 using Microsoft.ML;

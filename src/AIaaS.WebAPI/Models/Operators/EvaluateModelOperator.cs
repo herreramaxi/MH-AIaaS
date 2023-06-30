@@ -1,9 +1,11 @@
 ﻿using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.Models.CustomAttributes;
 using AIaaS.WebAPI.Models.Dtos;
 using AIaaS.WebAPI.Models.enums;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AIaaS.WebAPI.Models.Operators
 {
@@ -57,6 +59,12 @@ namespace AIaaS.WebAPI.Models.Operators
             }
 
             IDataView predictions = context.TrainedModel.Transform(context.TestData);
+
+
+            var transformer = context.EstimatorChain.Fit(context.DataView);
+            var dataview = transformer.Transform(context.DataView);
+            var preview = dataview.Preview(50);
+
             //TODO: Configure score column
 
             var metricsSerialized = default(string);
@@ -66,11 +74,11 @@ namespace AIaaS.WebAPI.Models.Operators
                 var modelMetrics = new RegressionMetricsDto
                 {
                     Task = context.Task,
-                    LossFunction = metrics.LossFunction,
-                    MeanAbsoluteError = metrics.MeanAbsoluteError,
-                    MeanSquaredError = metrics.MeanSquaredError,
-                    RootMeanSquaredError = metrics.RootMeanSquaredError,
-                    RSquared = metrics.RSquared
+                    LossFunction = metrics.LossFunction.ToString(),
+                    MeanAbsoluteError = metrics.MeanAbsoluteError.ToString(),
+                    MeanSquaredError = metrics.MeanSquaredError.ToString(),
+                    RootMeanSquaredError = metrics.RootMeanSquaredError.ToString(),
+                    RSquared = metrics.RSquared.ToString()
                 };
                 metricsSerialized = JsonSerializer.Serialize(modelMetrics);
 
@@ -82,15 +90,15 @@ namespace AIaaS.WebAPI.Models.Operators
                 var modelMetrics = new BinaryClasifficationMetricsDto
                 {
                     Task = context.Task,
-                    LogLossReduction = metrics.LogLossReduction,
-                    Accuracy = metrics.Accuracy,
-                    LogLoss = metrics.LogLoss,
-                    NegativeRecall = metrics.NegativeRecall,
-                    PositiveRecall = metrics.PositiveRecall,
-                    AreaUnderPrecisionRecallCurve = metrics.AreaUnderPrecisionRecallCurve,
-                    AreaUnderRocCurve = metrics.AreaUnderRocCurve,
-                    Entropy = metrics.Entropy,
-                    F1Score = metrics.F1Score
+                    LogLossReduction = metrics.LogLossReduction.ToString(),
+                    Accuracy = metrics.Accuracy.ToString(),
+                    LogLoss = metrics.LogLoss.ToString(),
+                    NegativeRecall = metrics.NegativeRecall.ToString(),
+                    PositiveRecall = metrics.PositiveRecall.ToString(),
+                    AreaUnderPrecisionRecallCurve = metrics.AreaUnderPrecisionRecallCurve.ToString(),
+                    AreaUnderRocCurve = metrics.AreaUnderRocCurve.ToString(),
+                    Entropy = metrics.Entropy.ToString(),
+                    F1Score = metrics.F1Score.ToString()
                 };
                 metricsSerialized = JsonSerializer.Serialize(modelMetrics);
             }

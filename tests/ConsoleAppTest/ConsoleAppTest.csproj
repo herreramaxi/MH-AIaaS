@@ -43,6 +43,9 @@
     <None Update="taxi-fare-train.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="titanic.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 	<Target Name="CopyFiles" AfterTargets="Build">

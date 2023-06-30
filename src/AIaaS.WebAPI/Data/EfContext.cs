@@ -21,6 +21,7 @@ namespace AIaaS.WebAPI.Data
         public DbSet<DataViewFile> DataViewFiles { get; set; }
         public DbSet<MLModel> MLModels { get; set; }
         public DbSet<ModelMetrics> ModelMetrics { get; set; }
+        public DbSet<MLEndpoint> Endpoints { get; set; }
 
         //protected override void OnConfiguring(DbContextOptionsBuilder options)
         //=> options.UseSqlServer($"Data Source={DbPath}");

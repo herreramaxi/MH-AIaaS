@@ -1,4 +1,5 @@
 ﻿using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.Models.CustomAttributes;
 using AIaaS.WebAPI.Models.Dtos;
 using AIaaS.WebAPI.Models.enums;
 using Microsoft.ML;
@@ -128,7 +129,6 @@ namespace AIaaS.WebAPI.Models.Operators
             }
 
             await _dbContext.SaveChangesAsync();
-            //mlContext.Model.Save(trainedModel, context.TrainingData.Schema, "model.zip");
         }
 
         private IEstimator<ITransformer>? GetTrainer(MLContext mlContext ,string task, string trainerName)

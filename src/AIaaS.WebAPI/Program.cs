@@ -1,8 +1,9 @@
 using AIaaS.WebAPI.Data;
 using AIaaS.WebAPI.Infrastructure;
 using AIaaS.WebAPI.Interfaces;
-using AIaaS.WebAPI.Middlewares;
+using AIaaS.WebAPI.Models.CustomAttributes;
 using AIaaS.WebAPI.Services;
+using AIaaS.WebAPI.Services.PredictionService;
 using dotenv.net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -48,6 +49,20 @@ builder.Services.AddHealthChecks()
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<IOperatorService, OperatorService>();
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
+builder.Services.AddScoped<IPredictionService, PredictionService>();
+builder.Services.AddScoped<IPredictionBuilderDirector, PredictionBuilderDirector>();
+builder.Services.AddScoped<ICustomAuthService, CustomAuthService>();
+
+builder.Services.AddSingleton<IMyCustomService, MyCustomService>();
+builder.Services.AddSingleton<IJwtValidationService>(provider =>
+{
+    var configuration = provider.GetRequiredService<IConfiguration>();
+    var issuer = configuration["JWT_ISSUER"]; // Replace with your Auth0 issuer
+    var audience = configuration["AUTH0_AUDIENCE"]; // Replace with your Auth0 audience
+    //var secret = configuration["JWT_SECRET"]; // Replace with your Auth0 secret
+    var jwksEndpoint = configuration["AUTH0_JWKS"]; // Replace with your Auth0 secret
+    return new JwtValidationService(issuer, audience, jwksEndpoint);
+});
 
 var workflowOperatorTypes = typeof(IWebApiMarker).Assembly
     .GetTypes()
@@ -56,6 +71,17 @@ var workflowOperatorTypes = typeof(IWebApiMarker).Assembly
 foreach (var workflowType in workflowOperatorTypes)
 {
     var serviceDescriptor = new ServiceDescriptor(typeof(IWorkflowOperator), workflowType, ServiceLifetime.Scoped);
+    builder.Services.Add(serviceDescriptor);
+}
+
+var predictServiceBUilderTypes = typeof(IWebApiMarker).Assembly
+    .GetTypes()
+    .Where(x => typeof(IPredictServiceParameterBuilder).IsAssignableFrom(x) && !x.IsAbstract && !x.IsInterface)
+    .OrderBy(x => x.GetCustomAttribute<PredictServiceParameterBuilderAttribute>()?.Order ?? int.MaxValue);
+
+foreach (var builderType in predictServiceBUilderTypes)
+{
+    var serviceDescriptor = new ServiceDescriptor(typeof(IPredictServiceParameterBuilder), builderType, ServiceLifetime.Scoped);
     builder.Services.Add(serviceDescriptor);
 }
 
@@ -153,6 +179,9 @@ var requiredVars =
           "CLIENT_ORIGIN_URL",
           "AUTH0_DOMAIN",
           "AUTH0_AUDIENCE",
+          "AUTH0_JWKS",
+          "JWT_ISSUER",
+          "JWT_SECRET",
           "DATABASE_CONNECTIONSTRING"
     };
 
@@ -179,7 +208,7 @@ app.MapGet("/test", () =>
 
 app.Urls.Add($"http://+:{app.Configuration.GetValue<string>("PORT_WEBAPI")}");
 
-app.UseErrorHandler();
+//app.UseErrorHandler();
 //app.UseSecureHeaders();
 app.MapControllers()
     .RequireAuthorization();
