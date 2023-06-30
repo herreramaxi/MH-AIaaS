@@ -25,6 +25,8 @@ echo "PORT_WEBAPI=$INTERNAL_PORT" | tee -a .env
 echo "CLIENT_ORIGIN_URL=$CLIENT_ORIGIN_URL" | tee -a .env
 echo "AUTH0_AUDIENCE=$AUTH0_AUDIENCE" | tee -a .env
 echo "AUTH0_DOMAIN=$AUTH0_DOMAIN" | tee -a .env
+echo "JWT_ISSUER=$JWT_ISSUER" | tee -a .env
+echo "AUTH0_JWKS=$AUTH0_JWKS" | tee -a .env
 echo "DATABASE_CONNECTIONSTRING=$DATABASE_CONNECTIONSTRING" | tee -a .env
 
 docker cp .env $CONTAINER_NAME:/app/.env

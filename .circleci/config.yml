@@ -45,7 +45,34 @@ jobs:
     steps:
       - run:
           name: deploy-application
-          command: ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export CONTAINER_NAME=\"$CONTAINER_NAME\";export IMAGE_NAME=\"$IMAGE_NAME\";export IMAGE_TAG=\"$IMAGE_TAG\";export PUBLIC_PORT=\"$PUBLIC_PORT\";export INTERNAL_PORT=\"$INTERNAL_PORT\";export CLIENT_ORIGIN_URL=\"$CLIENT_ORIGIN_URL\";export AUTH0_AUDIENCE=\"$AUTH0_AUDIENCE\";export AUTH0_DOMAIN=\"$AUTH0_DOMAIN\";export DATABASE_CONNECTIONSTRING=\"$DATABASE_CONNECTIONSTRING\";rm -rf MH-AIaaS;git clone https://github.com/herreramaxi/MH-AIaaS.git;source MH-AIaaS/deploy.sh"
+          command: |
+            echo 'export CONTAINER_NAME="$CONTAINER_NAME"' >> $BASH_ENV
+            echo 'export IMAGE_NAME="$IMAGE_NAME"' >> $BASH_ENV
+            echo 'export IMAGE_TAG="$IMAGE_TAG"' >> $BASH_ENV
+            echo 'export PUBLIC_PORT="$PUBLIC_PORT"' >> $BASH_ENV
+            echo 'export INTERNAL_PORT="$INTERNAL_PORT"' >> $BASH_ENV
+            echo 'export CLIENT_ORIGIN_URL="$CLIENT_ORIGIN_URL"' >> $BASH_ENV
+            echo 'export AUTH0_AUDIENCE="$AUTH0_AUDIENCE"' >> $BASH_ENV
+            echo 'export AUTH0_DOMAIN="$AUTH0_DOMAIN"' >> $BASH_ENV
+            echo 'export DATABASE_CONNECTIONSTRING="$DATABASE_CONNECTIONSTRING"' >> $BASH_ENV
+            echo 'export JWT_ISSUER="$JWT_ISSUER"' >> $BASH_ENV
+            echo 'export AUTH0_JWKS="AUTH0_JWKS"' >> $BASH_ENV
+            source $BASH_ENV
+            ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "rm -rf MH-AIaaS; git clone https://github.com/herreramaxi/MH-AIaaS.git; source MH-AIaaS/deploy.sh"
+          environment:
+            EC2_USERNAME: $EC2_USERNAME
+            EC2_PUBLIC_DNS: $EC2_PUBLIC_DNS
+            CONTAINER_NAME: $CONTAINER_NAME
+            IMAGE_NAME: $IMAGE_NAME
+            IMAGE_TAG: $IMAGE_TAG
+            PUBLIC_PORT: $PUBLIC_PORT
+            INTERNAL_PORT: $INTERNAL_PORT
+            CLIENT_ORIGIN_URL: $CLIENT_ORIGIN_URL
+            AUTH0_AUDIENCE: $AUTH0_AUDIENCE
+            AUTH0_DOMAIN: $AUTH0_DOMAIN
+            JWT_ISSUER: $JWT_ISSUER
+            AUTH0_JWKS: $AUTH0_JWKS
+            DATABASE_CONNECTIONSTRING: $DATABASE_CONNECTIONSTRING
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
