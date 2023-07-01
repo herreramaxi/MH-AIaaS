@@ -4,6 +4,8 @@ using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Models.CustomAttributes;
 using AIaaS.WebAPI.Services;
 using AIaaS.WebAPI.Services.PredictionService;
+using Amazon.CloudWatchLogs;
+using Amazon.Runtime;
 using dotenv.net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -11,6 +13,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Serilog.Formatting.Json;
+using Serilog.Sinks.AwsCloudWatch;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,9 +29,27 @@ builder.Host.ConfigureAppConfiguration((configBuilder) =>
 builder.Host.UseSerilog((hostContext, services, configuration) =>
 {
     configuration
-    .Enrich.WithThreadId()
-    .WriteTo.Console();
+      .Enrich.WithThreadId()
+      .WriteTo.Console();
 
+    if (builder.Environment.IsProduction())
+    {
+        configuration.WriteTo.AmazonCloudWatch(
+          new CloudWatchSinkOptions
+          {
+              LogGroupName = builder.Configuration.GetValue<string>("AWS_LOG_GROUP_NAME"),
+              LogStreamNameProvider = new DefaultLogStreamProvider(),
+              TextFormatter = new JsonFormatter(renderMessage: true),
+              BatchSizeLimit = 100,
+              QueueSizeLimit = 10000,
+              RetryAttempts = 5,
+              CreateLogGroup = true,
+          },
+            new AmazonCloudWatchLogsClient(
+                new BasicAWSCredentials(
+                    builder.Configuration.GetValue<string>("AWS_ACCESS_KEY_ID"),
+                    builder.Configuration.GetValue<string>("AWS_SECRET_ACCESS_KEY"))));
+    }
 });
 
 builder.WebHost.ConfigureKestrel(serverOptions =>
@@ -57,10 +79,10 @@ builder.Services.AddSingleton<IMyCustomService, MyCustomService>();
 builder.Services.AddSingleton<IJwtValidationService>(provider =>
 {
     var configuration = provider.GetRequiredService<IConfiguration>();
-    var issuer = configuration["JWT_ISSUER"]; // Replace with your Auth0 issuer
-    var audience = configuration["AUTH0_AUDIENCE"]; // Replace with your Auth0 audience
-    //var secret = configuration["JWT_SECRET"]; // Replace with your Auth0 secret
-    var jwksEndpoint = configuration["AUTH0_JWKS"]; // Replace with your Auth0 secret
+    var issuer = configuration["JWT_ISSUER"];
+    var audience = configuration["AUTH0_AUDIENCE"];
+    //var secret = configuration["JWT_SECRET"];
+    var jwksEndpoint = configuration["AUTH0_JWKS"];
     return new JwtValidationService(issuer, audience, jwksEndpoint);
 });
 
@@ -181,7 +203,10 @@ var requiredVars =
           "AUTH0_AUDIENCE",
           "AUTH0_JWKS",
           "JWT_ISSUER",
-          "DATABASE_CONNECTIONSTRING"
+          "DATABASE_CONNECTIONSTRING",
+          "AWS_LOG_GROUP_NAME",
+          "AWS_ACCESS_KEY_ID",
+          "AWS_SECRET_ACCESS_KEY",
     };
 
 foreach (var key in requiredVars)

@@ -28,6 +28,9 @@ echo "AUTH0_DOMAIN=$AUTH0_DOMAIN" | tee -a .env
 echo "JWT_ISSUER=$JWT_ISSUER" | tee -a .env
 echo "AUTH0_JWKS=$AUTH0_JWKS" | tee -a .env
 echo "DATABASE_CONNECTIONSTRING=$DATABASE_CONNECTIONSTRING" | tee -a .env
+echo "AWS_LOG_GROUP_NAME=$AWS_LOG_GROUP_NAME" | tee -a .env
+echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" | tee -a .env
+echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" | tee -a .env
 
 docker cp .env $CONTAINER_NAME:/app/.env
 rm .env
