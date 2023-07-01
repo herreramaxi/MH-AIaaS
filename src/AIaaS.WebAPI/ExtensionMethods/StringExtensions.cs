@@ -12,6 +12,30 @@ namespace AIaaS.WebAPI.ExtensionMethods
             return columnDataTypeEnum;
         }
 
+        public static Type ToType(this DataKind dataKind)
+        {
+            var dataType = dataKind switch
+            {
+                DataKind.Boolean => typeof(bool),
+                DataKind.Single => typeof(float),
+                DataKind.Double => typeof(double),
+                DataKind.Int16 => typeof(short),
+                DataKind.UInt16 => typeof(ushort),
+                DataKind.Int32 => typeof(int),
+                DataKind.UInt32 => typeof(uint),
+                DataKind.Int64 => typeof(long),
+                DataKind.UInt64 => typeof(ulong),
+                DataKind.String => typeof(string),
+                DataKind.DateTime => typeof(DateTime),
+                DataKind.TimeSpan => typeof(TimeSpan),
+                DataKind.DateTimeOffset => typeof(DateTimeOffset),
+
+                _ => typeof(float)
+            };
+
+            return dataType;
+        }
+
 
         //public static DataKind ToDataKind(this string typeAsString)
         //{
