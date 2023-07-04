@@ -711,7 +711,7 @@ namespace AIaaS.WebAPI.Controllers
                 TextLoader loader = mlContext.Data.CreateTextLoader(columnInference.TextLoaderOptions);
                 IDataView data = loader.Load(filePath);
 
-                var MaxRows = 11;
+                var MaxRows = 100;
                 var preview = data.Preview(maxRows: MaxRows);
                 var rowIndex = 0;
 

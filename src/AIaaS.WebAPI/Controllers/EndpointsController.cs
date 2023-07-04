@@ -1,9 +1,7 @@
 ﻿using AIaaS.WebAPI.Data;
-using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Models;
 using AIaaS.WebAPI.Models.Dtos;
 using AIaaS.WebAPI.Models.enums;
-using Ardalis.Result.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -218,8 +216,19 @@ namespace AIaaS.WebAPI.Controllers
 
         // DELETE api/<EndpointsController>/5
         [HttpDelete("{id}")]
-        public void Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
+            if (id <= 0)
+                return BadRequest("Id parameter should be greater than zero");
+
+            var endpoint = await _dbContext.Endpoints.FirstOrDefaultAsync(x => x.Id == id);
+            if (endpoint is null)
+                return NotFound();
+
+            _dbContext.Endpoints.Remove(endpoint);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok();
         }
     }
 }
