@@ -713,24 +713,24 @@ namespace AIaaS.WebAPI.Controllers
 
                 var MaxRows = 100;
                 var preview = data.Preview(maxRows: MaxRows);
-                var rowIndex = 0;
 
-                var records = new string[MaxRows][];
+                var records = new List<string[]>();
 
                 foreach (var row in preview.RowView)
                 {
-                    records[rowIndex] = new string[row.Values.Length];
+                    var record = new string[row.Values.Length];
                     var values = row.Values.Select(x => x.Value).ToArray();
                     var ColumnCollection = row.Values;
 
                     for (int i = 0; i < row.Values.Length; i++)
                     {
-                        records[rowIndex][i] = values[i]?.ToString() ?? "";
+                        record[i] = values[i]?.ToString() ?? "";
                     }
-                    rowIndex++;
+
+                    records.Add(record);
                 }
 
-                fileAnalysis.Data = records;
+                fileAnalysis.Data = records.ToArray();
 
                 fileAnalysis.Delimiter = fileAnalysis.Delimiter.Replace("\t", "\\t");
                 return Ok(fileAnalysis);
