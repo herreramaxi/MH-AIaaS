@@ -1,4 +1,5 @@
-﻿using AIaaS.WebAPI.Models.CustomAttributes;
+﻿using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.Models.CustomAttributes;
 using AIaaS.WebAPI.Models.Dtos;
 using AIaaS.WebAPI.Models.enums;
 using Microsoft.ML;
@@ -12,12 +13,14 @@ namespace AIaaS.WebAPI.Models.Operators
     public class CleanDataOperator : WorkflowOperatorAbstract
     {
         private readonly ILogger<CleanDataOperator> _logger;
+        private readonly EfContext _dbContext;
         private string? _cleanMode;
         private IList<string>? _selectedColumns;
 
-        public CleanDataOperator(ILogger<CleanDataOperator> logger)
+        public CleanDataOperator(ILogger<CleanDataOperator> logger, EfContext dbContext)
         {
             _logger = logger;
+            _dbContext = dbContext;
         }
         public override Task Hydrate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
@@ -50,25 +53,25 @@ namespace AIaaS.WebAPI.Models.Operators
             return true;
         }
 
-        public override Task Run(WorkflowContext context, Dtos.WorkflowNodeDto root)
+        public override async Task Run(WorkflowContext context, Dtos.WorkflowNodeDto root)
         {
             if (context.InputOutputColumns is null || !context.InputOutputColumns.Any())
             {
                 root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
-                return Task.CompletedTask;
+                return;
             }
 
             if (_cleanMode is null || _selectedColumns is null || !_selectedColumns.Any())
             {
                 root.SetAsFailed("Please verify the operator is correctly configured");
-                return Task.CompletedTask;
+                return;
             }
 
             var mlContext = context.MLContext;
             var selectedColumns = context.InputOutputColumns
                 .Where(x => _selectedColumns.Contains(x.InputColumnName, StringComparer.InvariantCultureIgnoreCase))
                 .ToArray();
-                       
+
             if (_cleanMode.Equals("RemoveRow"))
             {
                 //TODO:
@@ -82,11 +85,7 @@ namespace AIaaS.WebAPI.Models.Operators
                     estimator;
             }
 
-            //var transformer = context.EstimatorChain.Fit(context.DataView);
-            //var dataview = transformer.Transform(context.DataView);
-            //var preview = dataview.Preview(50);
-
-            return Task.CompletedTask;
+            return;
         }
     }
 }

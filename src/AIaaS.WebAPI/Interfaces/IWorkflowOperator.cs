@@ -1,4 +1,5 @@
-﻿using AIaaS.WebAPI.Models;
+﻿using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.Models;
 using AIaaS.WebAPI.Models.Dtos;
 
 namespace AIaaS.WebAPI.Interfaces
@@ -13,5 +14,6 @@ namespace AIaaS.WebAPI.Interfaces
         bool Validate(WorkflowContext context, WorkflowNodeDto root);
         void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root);
         void Postprocessing(WorkflowContext context, WorkflowNodeDto root);
+        Task GenerateOuput(WorkflowContext context, WorkflowNodeDto root, EfContext dbContext);
     }
 }

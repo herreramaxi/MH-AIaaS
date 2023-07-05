@@ -4,6 +4,7 @@ using AIaaS.WebAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AIaaS.WebAPI.Migrations
 {
     [DbContext(typeof(EfContext))]
-    partial class AIaaSContextModelSnapshot : ModelSnapshot
+    [Migration("20230704231824_AddWorkflowDataView")]
+    partial class AddWorkflowDataView
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -427,10 +430,6 @@ namespace AIaaS.WebAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("NodeType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<long>("Size")
                         .HasColumnType("bigint");
 
@@ -441,7 +440,7 @@ namespace AIaaS.WebAPI.Migrations
 
                     b.HasIndex("WorkflowId");
 
-                    b.ToTable("WorkflowDataViews");
+                    b.ToTable("WorkflowDataView");
                 });
 
             modelBuilder.Entity("AIaaS.WebAPI.Models.ColumnSetting", b =>

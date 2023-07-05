@@ -1,6 +1,8 @@
-﻿using AIaaS.WebAPI.Interfaces;
+﻿using AIaaS.WebAPI.Data;
+using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Models.CustomAttributes;
 using AIaaS.WebAPI.Models.Dtos;
+using Microsoft.ML;
 
 namespace AIaaS.WebAPI.Models.Operators
 {
@@ -32,13 +34,48 @@ namespace AIaaS.WebAPI.Models.Operators
         public virtual void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root)
         {
             var parentDatasetColumns = root.Parent?.Data?.DatasetColumns;
-            
+
             root.SetDatasetColumns(parentDatasetColumns);
         }
 
         public void Postprocessing(WorkflowContext context, WorkflowNodeDto root)
         {
             root.Parent = null;
+        }
+        virtual public async Task GenerateOuput(WorkflowContext context, WorkflowNodeDto root, EfContext dbContext)
+        {
+            if (context.EstimatorChain is null) return;
+
+            var transformer = context.EstimatorChain.Fit(context.DataView);
+            var dataview = transformer.Transform(context.DataView);
+            using var stream = new MemoryStream();
+            context.MLContext.Data.SaveAsBinary(dataview, stream);
+
+            var dataView = context.Workflow.WorkflowDataViews.FirstOrDefault(x => x.NodeId.Equals(root.Id, StringComparison.InvariantCultureIgnoreCase));
+
+            if (dataView is null)
+            {
+                dataView = new WorkflowDataView
+                {
+                    Size = stream.Length,
+                    Data = stream.ToArray(),
+                    NodeId = root.Id,
+                    NodeType = root.Type
+                };
+
+                context.Workflow.WorkflowDataViews.Add(dataView);
+            }
+            else
+            {
+                dataView.Size = stream.Length;
+                dataView.Data = stream.ToArray();
+            }
+
+            await dbContext.SaveChangesAsync();
+            var preview = dataview.Preview(50);
+
+            root.Data.Parameters = new Dictionary<string, object>();
+            root.Data.Parameters.Add("WorkflowDataViewId", dataView.Id);
         }
     }
 }

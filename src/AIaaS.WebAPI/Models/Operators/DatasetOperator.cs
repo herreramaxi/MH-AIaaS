@@ -132,7 +132,7 @@ namespace AIaaS.WebAPI.Models.Operators
         public IEnumerable<T> GetRecordsMethod<T>(CsvReader csvReader)
         {
             return csvReader.GetRecords<T>();
-        }
+        }    
     }
 
     public class SalesRow

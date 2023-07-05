@@ -19,5 +19,6 @@ namespace AIaaS.WebAPI.Models
         public string? LabelColumn { get; internal set; }
         public bool RunWorkflow { get; internal set; }
         public string? Task { get; internal set; }
+        public string MetricsSerialized { get; internal set; }
     }
 }

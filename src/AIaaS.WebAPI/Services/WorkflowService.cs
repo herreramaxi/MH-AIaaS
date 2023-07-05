@@ -4,6 +4,7 @@ using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Models;
 using AIaaS.WebAPI.Models.Dtos;
 using Ardalis.Result;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.ML;
 using System.Text.Json;
 
@@ -49,7 +50,9 @@ namespace AIaaS.WebAPI.Services
         {
             try
             {
-                var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+                var workflow = await _dbContext.Workflows
+                    .Include(w => w.WorkflowDataViews)
+                    .FirstOrDefaultAsync(w => w.Id == workflowDto.Id);
 
                 if (workflow is null)
                 {
@@ -81,7 +84,7 @@ namespace AIaaS.WebAPI.Services
                 foreach (var node in nodes)
                 {
                     await this.ProcessNode(node, context);
-                }               
+                }
 
                 var workflowSerialized = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
@@ -167,17 +170,20 @@ namespace AIaaS.WebAPI.Services
                 node.SetAsFailed($"Workflow operator not found for type {node.Type}");
                 return;
             }
-                      
+
             try
             {
                 workflowOperator.Preprocessing(context, node);
                 await workflowOperator.Hydrate(context, node);
                 workflowOperator.PropagateDatasetColumns(context, node);
                 var isValid = workflowOperator.Validate(context, node);
-                
+
                 if (context.RunWorkflow && isValid)
                 {
+                    //TODO: improve error handling, operator should return success or not, and root.SetAsFailed in another place
                     await workflowOperator.Run(context, node);
+                    //TODO: if all good then generate dataview
+                    await workflowOperator.GenerateOuput(context, node, _dbContext);
                 }
             }
             catch (Exception ex)
@@ -187,7 +193,7 @@ namespace AIaaS.WebAPI.Services
             }
         }
 
-       
+
 
         //private async Task TraverseTreeDFS(WorkflowNodeDto? root, WorkflowContext context)
         //{

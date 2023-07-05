@@ -5,7 +5,6 @@ using AIaaS.WebAPI.Models.enums;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace AIaaS.WebAPI.Models.Operators
 {
@@ -67,7 +66,6 @@ namespace AIaaS.WebAPI.Models.Operators
 
             //TODO: Configure score column
 
-            var metricsSerialized = default(string);
             if (context.Task == "Regression")
             {
                 var metrics = context.MLContext.Regression.Evaluate(predictions, labelColumnName: context.LabelColumn, scoreColumnName: "Score");
@@ -80,7 +78,7 @@ namespace AIaaS.WebAPI.Models.Operators
                     RootMeanSquaredError = metrics.RootMeanSquaredError.ToString(),
                     RSquared = metrics.RSquared.ToString()
                 };
-                metricsSerialized = JsonSerializer.Serialize(modelMetrics);
+                context.MetricsSerialized = JsonSerializer.Serialize(modelMetrics);
 
                 PrintRegressionMetrics(context.Trainer?.ToString() ?? "N/A", metrics);
             }
@@ -100,7 +98,7 @@ namespace AIaaS.WebAPI.Models.Operators
                     Entropy = metrics.Entropy.ToString(),
                     F1Score = metrics.F1Score.ToString()
                 };
-                metricsSerialized = JsonSerializer.Serialize(modelMetrics);
+                context.MetricsSerialized = JsonSerializer.Serialize(modelMetrics);
             }
             else
             {
@@ -113,28 +111,6 @@ namespace AIaaS.WebAPI.Models.Operators
                 root.SetAsFailed("Model not found, please add a 'Train Model' operator into the pipeline");
                 return;
             }
-
-            await _dbContext.Entry(context.Workflow.MLModel)
-                .Reference(x => x.ModelMetrics)
-                .LoadAsync();
-
-            if (context.Workflow.MLModel.ModelMetrics is null)
-            {
-                context.Workflow.MLModel.ModelMetrics = new ModelMetrics
-                {
-                    MetricType = MetricTypeEnum.Regression,
-                    Data = metricsSerialized
-                };
-            }
-            else
-            {
-                context.Workflow.MLModel.ModelMetrics.MetricType = MetricTypeEnum.Regression;
-                context.Workflow.MLModel.ModelMetrics.Data = metricsSerialized;
-            }
-            await _dbContext.SaveChangesAsync();
-
-            root.Data.Parameters = new Dictionary<string, object>();
-            root.Data.Parameters.Add("ModelMetricsId", context.Workflow.MLModel.ModelMetrics.Id);
         }
 
         public void PrintRegressionMetrics(string name, RegressionMetrics metrics)
@@ -150,5 +126,31 @@ namespace AIaaS.WebAPI.Models.Operators
             _logger.LogInformation($"*************************************************");
         }
 
+        override public async Task GenerateOuput(WorkflowContext context, WorkflowNodeDto root, EfContext dbContext)
+        {
+            if (context.Workflow.MLModel is null) return;
+
+            await _dbContext.Entry(context.Workflow.MLModel)
+            .Reference(x => x.ModelMetrics)
+            .LoadAsync();
+
+            if (context.Workflow.MLModel.ModelMetrics is null)
+            {
+                context.Workflow.MLModel.ModelMetrics = new ModelMetrics
+                {
+                    MetricType = MetricTypeEnum.Regression,
+                    Data = context.MetricsSerialized
+                };
+            }
+            else
+            {
+                context.Workflow.MLModel.ModelMetrics.MetricType = MetricTypeEnum.Regression;
+                context.Workflow.MLModel.ModelMetrics.Data = context.MetricsSerialized;
+            }
+            await _dbContext.SaveChangesAsync();
+
+            root.Data.Parameters = new Dictionary<string, object>();
+            root.Data.Parameters.Add("ModelMetricsId", context.Workflow.MLModel.ModelMetrics.Id);
+        }
     }
 }

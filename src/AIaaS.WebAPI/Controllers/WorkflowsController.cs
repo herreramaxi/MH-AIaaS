@@ -5,6 +5,7 @@ using AIaaS.WebAPI.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.ML;
 using System.Security.Claims;
 
 namespace AIaaS.WebAPI.Controllers
@@ -185,6 +186,42 @@ namespace AIaaS.WebAPI.Controllers
             await _dbContext.SaveChangesAsync();
 
             return Ok(workflowDto);
+        }
+
+        [HttpGet("GetPreview/{workflowDataviewId:int}")]
+        public async Task<ActionResult> GetPreview(int workflowDataviewId)
+        {
+            var dataView = await _dbContext.WorkflowDataViews.FindAsync(workflowDataviewId);
+            if (dataView?.Data is null) return NotFound();
+
+            using var memStream = new MemoryStream(dataView.Data);
+            var mss = new MultiStreamSourceFile(memStream);
+            var mlContext = new MLContext();
+            var dataview = mlContext.Data.LoadFromBinary(mss);
+            var header = dataview.Schema.Select(x => x.Name);
+            var MaxRows = 100;
+            var preview = dataview.Preview(maxRows: MaxRows);  
+            
+            var records = new List<string[]>();
+            var columns = preview.Schema.Where(x => !x.IsHidden).Select(x => new { x.Index, x.Name });
+            var columnIndices = columns.Select(x => x.Index).ToHashSet();
+
+            foreach (var row in preview.RowView)
+            {
+                var record = row.Values
+                    .Where((x, i) => columnIndices.Contains(i))
+                    .Select(x => x.Value?.ToString() ?? "")
+                    .ToArray();
+
+                records.Add(record);
+            }
+
+            return Ok(new
+            {
+                header = header,
+                rows = records
+            });
+
         }
     }
 }

@@ -11,5 +11,6 @@
         public bool? IsModelGenerated { get; set; }
         public MLModel? MLModel { get; set; }
         public string? Data { get; set; }
+        public List<WorkflowDataView> WorkflowDataViews { get; set; } = new List<WorkflowDataView>();
     }
 }
