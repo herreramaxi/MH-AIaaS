@@ -37,7 +37,10 @@ namespace AIaaS.WebAPI.Controllers
             if (id <= 0)
                 return BadRequest("Id parameter should be greater than zero");
 
-            var workflow = await _dbContext.FindAsync<Workflow>(id);
+            var workflow = await _dbContext.Workflows
+                .Include(w => w.MLModel)
+                .ThenInclude(m => m.Endpoint)
+                .FirstOrDefaultAsync(w => w.Id == id);
 
             if (workflow is null)
                 return NotFound();
@@ -47,8 +50,8 @@ namespace AIaaS.WebAPI.Controllers
                 Id = workflow.Id,
                 Name = workflow.Name,
                 Description = workflow.Description,
-                IsPublished = workflow.IsPublished,
-                IsModelGenerated = workflow.IsModelGenerated,
+                IsPublished = workflow.MLModel?.Endpoint is not null,
+                IsModelGenerated = workflow.MLModel is not null,
                 CreatedBy = workflow.CreatedBy,
                 CreatedOn = workflow.CreatedOn,
                 ModifiedBy = workflow.ModifiedBy,
@@ -170,24 +173,6 @@ namespace AIaaS.WebAPI.Controllers
             };
         }
 
-
-        [HttpPost("publish")]
-        public async Task<IActionResult> Publish([FromServices] IWorkflowService workflowService, WorkflowDto workflowDto)
-        {
-            if (workflowDto?.Id is null || workflowDto.Id <= 0)
-                return BadRequest("Id parameter should be greater than zero");
-
-            var workflow = await _dbContext.FindAsync<Workflow>(workflowDto.Id);
-
-            if (workflow is null)
-                return NotFound();
-
-            workflow.IsPublished = true;
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(workflowDto);
-        }
-
         [HttpGet("GetPreview/{workflowDataviewId:int}")]
         public async Task<ActionResult> GetPreview(int workflowDataviewId)
         {
@@ -200,8 +185,8 @@ namespace AIaaS.WebAPI.Controllers
             var dataview = mlContext.Data.LoadFromBinary(mss);
             var header = dataview.Schema.Select(x => x.Name);
             var MaxRows = 100;
-            var preview = dataview.Preview(maxRows: MaxRows);  
-            
+            var preview = dataview.Preview(maxRows: MaxRows);
+
             var records = new List<string[]>();
             var columns = preview.Schema.Where(x => !x.IsHidden).Select(x => new { x.Index, x.Name });
             var columnIndices = columns.Select(x => x.Index).ToHashSet();

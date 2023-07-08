@@ -4,5 +4,6 @@
     {
         Unknown = 0,
         Regression = 1,
+        BinaryClassification = 2
     }
 }

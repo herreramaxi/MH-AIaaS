@@ -89,7 +89,6 @@ namespace AIaaS.WebAPI.Services
                 var workflowSerialized = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
                 workflow.Data = workflowSerialized;
-                workflow.IsModelGenerated = true;
 
                 _dbContext.Workflows.Update(workflow);
                 await _dbContext.SaveChangesAsync();
@@ -97,7 +96,7 @@ namespace AIaaS.WebAPI.Services
                 workflowDto.Root = workflow.Data;
                 workflowDto.ModifiedOn = workflow.ModifiedOn;
                 workflowDto.ModifiedBy = workflow.ModifiedBy;
-                workflowDto.IsModelGenerated = true;
+                workflowDto.IsModelGenerated = workflow.MLModel != null;
 
                 return Result.Success(workflowDto);
             }

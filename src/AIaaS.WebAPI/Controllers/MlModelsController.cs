@@ -1,6 +1,7 @@
 ﻿using AIaaS.WebAPI.Data;
 using AIaaS.WebAPI.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -10,43 +11,31 @@ namespace AIaaS.WebAPI.Controllers
     [ApiController]
     public class MLModelsController : ControllerBase
     {
-        public static List<MlModelDto> _models = new List<MlModelDto>()
-            {
-                new MlModelDto(){ Id = 1, Name= "Housing - Price Prediction" , Status = "Published", CreatedBy = "Maxi Herrera", CreatedOn = DateTime.Now, ModifiedBy = "Herrera Maxi" , ModifiedOn = DateTime.Now},
-                new MlModelDto(){ Id = 2, Name= "Flower Types - Classification" , Status = "Running", CreatedBy = "Maxi Herrera", CreatedOn = DateTime.Now, ModifiedBy = "Herrera Maxi" , ModifiedOn = DateTime.Now},
-                new MlModelDto(){ Id = 3, Name= "Advertising - Sales Prediction" , Status = "Submitted", CreatedBy = "Maxi Herrera", CreatedOn = DateTime.Now, ModifiedBy = "Herrera Maxi" , ModifiedOn = DateTime.Now}
-            };
         private readonly EfContext _dbContext;
 
         public MLModelsController(EfContext dbContext)
         {
             _dbContext = dbContext;
-
-
         }
 
         // GET: api/<ModelsController>
         [HttpGet]
         public IActionResult Get()
         {
-            var models = _dbContext.MLModels.ToList().Select(x =>
-            {
-                _dbContext.Entry(x).Reference(p => p.Workflow).Load();
-
-                var dto = new MlModelDto
+            var models = _dbContext.MLModels
+                .Include(x => x.Workflow)
+                .Include(x => x.Endpoint)
+                .Select(x => new MlModelDto
                 {
                     Name = x.Workflow.Name,
-                    Status = x.Workflow.IsPublished ?? false ? "Published" : "Submitted",
+                    IsPublished = x.Endpoint != null,
                     Id = x.Id,
                     CreatedBy = x.CreatedBy,
                     CreatedOn = x.CreatedOn,
                     ModifiedBy = x.ModifiedBy,
                     ModifiedOn = x.ModifiedOn
-                };
-
-                return dto;
-            });
-
+                })
+                .ToList();
 
             return Ok(models);
         }
@@ -55,14 +44,35 @@ namespace AIaaS.WebAPI.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var model = await _dbContext.MLModels.FindAsync(id);
+            var model = await _dbContext.MLModels
+                 .Include(x => x.Workflow)
+                .Include(x => x.Endpoint)
+                .FirstOrDefaultAsync(x => x.Id == id);
 
             if (model is null)
             {
                 return NotFound("Model not found");
             }
 
-            return Ok(model);
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var sanitizedFileName = string.Concat(model.Workflow.Name.Split(invalidChars));
+            var normalizedFileName = sanitizedFileName.Replace(" ", "_") + ".zip";
+
+            var dto = new MlModelDto
+            {
+                Name = model.Workflow.Name,
+                FileName = normalizedFileName,
+                IsPublished = model.Endpoint != null,
+                Id = model.Id,
+                Size = model.Size,
+                WorkflowId = model.Workflow.Id,
+                CreatedBy = model.CreatedBy,
+                CreatedOn = model.CreatedOn,
+                ModifiedBy = model.ModifiedBy,
+                ModifiedOn = model.ModifiedOn
+            };
+
+            return Ok(dto);
         }
 
         // POST api/<ModelsController>
@@ -77,17 +87,18 @@ namespace AIaaS.WebAPI.Controllers
         {
         }
 
-        // DELETE api/<ModelsController>/5
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var model = _models.FirstOrDefault(x => x.Id == id);
-            if (model == null)
-            {
-                return NotFound();
-            }
+            if (id <= 0)
+                return BadRequest("Id parameter should be greater than zero");
 
-            _models.Remove(model);
+            var model = await _dbContext.MLModels.FindAsync(id);
+            if (model is null)
+                return NotFound();
+
+            _dbContext.MLModels.Remove(model);
+            await _dbContext.SaveChangesAsync();
 
             return Ok();
         }
@@ -98,6 +109,15 @@ namespace AIaaS.WebAPI.Controllers
             var metrics = await _dbContext.ModelMetrics.FindAsync(id);
 
             return metrics is null ? NotFound() : Ok(metrics);
+        }
+
+        [HttpGet("Download/{id:int}")]
+        public async Task<IActionResult> Download(int id)
+        {
+            var model = await _dbContext.MLModels.FindAsync(id);
+            if (model is null) return NotFound();
+
+            return File(model.Data, "application/octet-stream");
         }
     }
 }

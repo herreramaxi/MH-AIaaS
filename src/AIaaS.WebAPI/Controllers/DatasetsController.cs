@@ -61,7 +61,7 @@ namespace AIaaS.WebAPI.Controllers
 
             await _dbContext.Entry(dataset).Reference(x => x.FileStorage).LoadAsync();
             await _dbContext.Entry(dataset).Reference(x => x.DataViewFile).LoadAsync();
-            
+
             var dto = new DatasetDto
             {
                 Id = dataset.Id,
@@ -69,7 +69,7 @@ namespace AIaaS.WebAPI.Controllers
                 Description = dataset.Description,
                 Size = dataset.FileStorage?.Size,
                 FileName = dataset.FileStorage?.FileName,
-                DataViewFileName =  dataset.DataViewFile?.Name,
+                DataViewFileName = dataset.DataViewFile?.Name,
                 DataViewFileSize = dataset.DataViewFile?.Size,
                 CreatedBy = dataset.CreatedBy,
                 CreatedOn = dataset.CreatedOn,
@@ -153,6 +153,29 @@ namespace AIaaS.WebAPI.Controllers
 
         }
 
+        [HttpGet("DownloadOriginalFile/{datasetId:int}")]
+        public async Task<IActionResult> DownloadOriginalFile(int datasetId)
+        {
+            var dataset = await _dbContext.Datasets.FindAsync(datasetId);
+            if (dataset is null) return NotFound();
+
+            await _dbContext.Entry(dataset).Reference(x => x.FileStorage).LoadAsync();
+            if (dataset?.FileStorage?.Data is null) return NotFound();
+
+            return File(dataset?.FileStorage?.Data, "application/octet-stream", dataset.FileStorage.FileName);
+        }
+     
+        [HttpGet("DownloadBinaryIdvFile/{datasetId:int}")]
+        public async Task<IActionResult> DownloadBinaryIdvFile(int datasetId)
+        {
+            var dataset = await _dbContext.Datasets.FindAsync(datasetId);
+            if (dataset is null) return NotFound();
+
+            await _dbContext.Entry(dataset).Reference(x => x.DataViewFile).LoadAsync();
+            if (dataset?.DataViewFile?.Data is null) return NotFound();
+
+            return File(dataset?.DataViewFile?.Data, "application/octet-stream", dataset.DataViewFile.Name);
+        }
 
         [HttpGet("GetFilePreview3/{datasetId:int}")]
         public async Task<ActionResult> GetFilePreview3(int datasetId)
@@ -748,6 +771,8 @@ namespace AIaaS.WebAPI.Controllers
                 }
             }
         }
+
+
 
         private string[] GetHeader(IFormFile file, FileAnalysisDto fileAnalysis)
         {

@@ -134,23 +134,30 @@ namespace AIaaS.WebAPI.Models.Operators
             .Reference(x => x.ModelMetrics)
             .LoadAsync();
 
+            var metrictType = this.GetMetricType(context.Task);
             if (context.Workflow.MLModel.ModelMetrics is null)
             {
                 context.Workflow.MLModel.ModelMetrics = new ModelMetrics
                 {
-                    MetricType = MetricTypeEnum.Regression,
+                    MetricType = metrictType,
                     Data = context.MetricsSerialized
                 };
             }
             else
             {
-                context.Workflow.MLModel.ModelMetrics.MetricType = MetricTypeEnum.Regression;
+                context.Workflow.MLModel.ModelMetrics.MetricType = metrictType;
                 context.Workflow.MLModel.ModelMetrics.Data = context.MetricsSerialized;
             }
             await _dbContext.SaveChangesAsync();
 
             root.Data.Parameters = new Dictionary<string, object>();
             root.Data.Parameters.Add("ModelMetricsId", context.Workflow.MLModel.ModelMetrics.Id);
+        }
+
+        private MetricTypeEnum GetMetricType(string? task)
+        {
+             Enum.TryParse<MetricTypeEnum>(task, out MetricTypeEnum metricType);
+            return metricType;
         }
     }
 }
