@@ -183,23 +183,13 @@ namespace AIaaS.WebAPI.Controllers
         {
             if (datasetDto is null)
                 return BadRequest("Dataset is required");
-            var userEmail = this.User.FindFirst(ClaimTypes.Email)?.Value;
-
-            if (userEmail == null)
-                return BadRequest("User email not found on request");
-
-            var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Email.ToLower().Equals(userEmail.ToLower()));
-
-            if (user == null)
-                return BadRequest("User not found");
-
+         
             var dataset = new Dataset()
             {
                 Name = datasetDto.Name,
                 Description = datasetDto.Description,
                 Delimiter = datasetDto.Delimiter,
-                MissingRealsAsNaNs = datasetDto.MissingRealsAsNaNs,
-                User = user
+                MissingRealsAsNaNs = datasetDto.MissingRealsAsNaNs
             };
 
             var columnSettings = datasetDto.ColumnSettings.Select(x => new ColumnSetting

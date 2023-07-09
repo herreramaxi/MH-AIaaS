@@ -5,7 +5,6 @@ namespace AIaaS.WebAPI.Interfaces
 {
     public interface IWorkflowService
     {
-        Task<Result<WorkflowDto>> Save(WorkflowDto workflowDto);
         Task<Result<WorkflowDto>> Run(WorkflowDto workflowDto);
         Task<Result<WorkflowDto>> Validate(WorkflowDto workflowDto);
     }

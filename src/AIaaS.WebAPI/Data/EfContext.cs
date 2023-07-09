@@ -13,7 +13,6 @@ namespace AIaaS.WebAPI.Data
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public DbSet<User> Users { get; set; }
         public DbSet<Dataset> Datasets { get; set; }
         public DbSet<ColumnSetting> ColumnSettings { get; set; }
         public DbSet<FileStorage> FileStorages { get; set; }

@@ -9,24 +9,24 @@ namespace AIaaS.WebAPI.Data
         {
             //context.Database.EnsureCreated();
             context.Database.Migrate();
-            // Look for any students.
-            if (context.Users.Any())
-            {
-                return;   // DB has been seeded
-            }
+            //// Look for any students.
+            //if (context.Users.Any())
+            //{
+            //    return;   // DB has been seeded
+            //}
 
-            var users = new User[]
-            {
-            new User{Email="herreramaxi@gmail.com"},
-            new User{Email="user1@mh-aiaas.com"},
-            new User{Email="user2@mh-aiaas.com"},
-            new User{Email="user3@mh-aiaas.com"},
-            };
-            foreach (User u in users)
-            {
-                context.Users.Add(u);
-            }
-            context.SaveChanges();
+            //var users = new User[]
+            //{
+            //new User{Email="herreramaxi@gmail.com"},
+            //new User{Email="user1@mh-aiaas.com"},
+            //new User{Email="user2@mh-aiaas.com"},
+            //new User{Email="user3@mh-aiaas.com"},
+            //};
+            //foreach (User u in users)
+            //{
+            //    context.Users.Add(u);
+            //}
+            //context.SaveChanges();
         }
     }
 }

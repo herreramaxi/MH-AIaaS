@@ -23,29 +23,6 @@ namespace AIaaS.WebAPI.Services
             _logger = logger;
         }
 
-        public async Task<Result<WorkflowDto>> Save(WorkflowDto workflowDto)
-        {
-            if (workflowDto == null)
-                return Result.Error("Workflow is required");
-
-            if (workflowDto.Id <= 0)
-                return Result.Error("Workflow id must be greater than zero");
-
-            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
-            if (workflow == null)
-                return Result.NotFound();
-
-            workflow.Data = workflowDto.Root;
-
-            _dbContext.Workflows.Update(workflow);
-            await _dbContext.SaveChangesAsync();
-
-            workflowDto.ModifiedOn = workflow.ModifiedOn;
-            workflowDto.ModifiedBy = workflow.ModifiedBy;
-
-            return Result.Success(workflowDto);
-        }
-
         public async Task<Result<WorkflowDto>> Run(WorkflowDto workflowDto)
         {
             try

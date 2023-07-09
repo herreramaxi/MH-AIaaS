@@ -2,11 +2,14 @@ using AIaaS.WebAPI.Data;
 using AIaaS.WebAPI.Infrastructure;
 using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Models.CustomAttributes;
+using AIaaS.WebAPI.PipelineBehaviours;
 using AIaaS.WebAPI.Services;
 using AIaaS.WebAPI.Services.PredictionService;
 using Amazon.CloudWatchLogs;
 using Amazon.Runtime;
 using dotenv.net;
+using FluentValidation;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -149,6 +152,13 @@ builder.Services.AddAuthorization(o =>
         RequireAuthenticatedUser().
         RequireRole("Administrator"));
 });
+
+
+//builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<IWebApiMarker>();
+builder.Services.AddAutoMapper(typeof(IWebApiMarker));
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<IWebApiMarker>());
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
 //TODO: Check if disable on prod or not
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

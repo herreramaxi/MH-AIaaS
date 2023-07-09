@@ -18,7 +18,7 @@ namespace AIaaS.WebAPI.Controllers
         private readonly EfContext _dbContext;
 
         public EndpointsController(EfContext dbContext)
-        {
+        {            
             _dbContext = dbContext;
         }
 
