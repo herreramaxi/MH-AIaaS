@@ -1,5 +1,5 @@
-﻿using AIaaS.WebAPI.Interfaces;
-using AIaaS.WebAPI.Models;
+﻿using AIaaS.Application.Common.Models;
+using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Services;
 using Ardalis.Result;
 using Ardalis.Result.AspNetCore;
@@ -78,10 +78,5 @@ namespace AIaaS.WebAPI.Controllers
         }
     }
 
-    public class PredictionInputDto
-    {
-        //public int EndpointId { get; set; }
-        public string[]? Columns { get; set; }
-        public object[]? Data { get; set; }
-    }
+  
 }

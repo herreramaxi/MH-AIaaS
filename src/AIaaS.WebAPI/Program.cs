@@ -1,18 +1,12 @@
-using AIaaS.WebAPI.Data;
+using AIaaS.Infrastructure.Data;
 using AIaaS.WebAPI.Infrastructure;
-using AIaaS.WebAPI.Interfaces;
-using AIaaS.WebAPI.Models.CustomAttributes;
-using AIaaS.WebAPI.PipelineBehaviours;
 using AIaaS.WebAPI.Services;
-using AIaaS.WebAPI.Services.PredictionService;
 using Amazon.CloudWatchLogs;
 using Amazon.Runtime;
+using CleanArchitecture.Application.Common.Interfaces;
 using dotenv.net;
-using FluentValidation;
-using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -61,24 +55,23 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Limits.MaxRequestBodySize = 60 * 1024 * 1024;
 });
 
+builder.Services.AddScoped<ICustomAuthService, CustomAuthService>();
+builder.Services.AddSingleton<IMyCustomService, MyCustomService>();
+
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+
 //builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-builder.Services.AddDbContext<EfContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetValue<string>("DATABASE_CONNECTIONSTRING")));
+//builder.Services.AddDbContext<EfContext>(options =>
+//                options.UseSqlServer(builder.Configuration.GetValue<string>("DATABASE_CONNECTIONSTRING")));
 
 //builder.Services.AddScoped<AIaaSContext, AIaaSContext>();
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<EfContext>();
 
-builder.Services.AddScoped<IMessageService, MessageService>();
-builder.Services.AddScoped<IOperatorService, OperatorService>();
-builder.Services.AddScoped<IWorkflowService, WorkflowService>();
-builder.Services.AddScoped<IPredictionService, PredictionService>();
-builder.Services.AddScoped<IPredictionBuilderDirector, PredictionBuilderDirector>();
-builder.Services.AddScoped<ICustomAuthService, CustomAuthService>();
-
-builder.Services.AddSingleton<IMyCustomService, MyCustomService>();
 builder.Services.AddSingleton<IJwtValidationService>(provider =>
 {
     var configuration = provider.GetRequiredService<IConfiguration>();
@@ -88,27 +81,6 @@ builder.Services.AddSingleton<IJwtValidationService>(provider =>
     var jwksEndpoint = configuration["AUTH0_JWKS"];
     return new JwtValidationService(issuer, audience, jwksEndpoint);
 });
-
-var workflowOperatorTypes = typeof(IWebApiMarker).Assembly
-    .GetTypes()
-    .Where(x => typeof(IWorkflowOperator).IsAssignableFrom(x) && !x.IsAbstract && !x.IsInterface);
-
-foreach (var workflowType in workflowOperatorTypes)
-{
-    var serviceDescriptor = new ServiceDescriptor(typeof(IWorkflowOperator), workflowType, ServiceLifetime.Scoped);
-    builder.Services.Add(serviceDescriptor);
-}
-
-var predictServiceBUilderTypes = typeof(IWebApiMarker).Assembly
-    .GetTypes()
-    .Where(x => typeof(IPredictServiceParameterBuilder).IsAssignableFrom(x) && !x.IsAbstract && !x.IsInterface)
-    .OrderBy(x => x.GetCustomAttribute<PredictServiceParameterBuilderAttribute>()?.Order ?? int.MaxValue);
-
-foreach (var builderType in predictServiceBUilderTypes)
-{
-    var serviceDescriptor = new ServiceDescriptor(typeof(IPredictServiceParameterBuilder), builderType, ServiceLifetime.Scoped);
-    builder.Services.Add(serviceDescriptor);
-}
 
 builder.Services.AddCors(options =>
 {
@@ -147,7 +119,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization(o =>
 {
-
     o.AddPolicy("Administrator", p => p.
         RequireAuthenticatedUser().
         RequireRole("Administrator"));
@@ -155,10 +126,10 @@ builder.Services.AddAuthorization(o =>
 
 
 //builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<IWebApiMarker>();
-builder.Services.AddAutoMapper(typeof(IWebApiMarker));
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<IWebApiMarker>());
-builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+//builder.Services.AddValidatorsFromAssemblyContaining<IWebApiMarker>();
+//builder.Services.AddAutoMapper(typeof(IWebApiMarker));
+//builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<IWebApiMarker>());
+//builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
 //TODO: Check if disable on prod or not
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -201,9 +172,10 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
-app.MapHealthChecks();
 
-app.CreateDbIfNotExists();
+await app.InitialiseDatabaseAsync();
+
+app.MapHealthChecks();
 
 var requiredVars =
     new string[] {

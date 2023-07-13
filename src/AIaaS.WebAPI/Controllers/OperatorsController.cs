@@ -1,5 +1,5 @@
-﻿using AIaaS.WebAPI.Models.Dtos;
-using AIaaS.WebAPI.Models.enums;
+﻿using AIaaS.Application.Common.Models.Dtos;
+using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

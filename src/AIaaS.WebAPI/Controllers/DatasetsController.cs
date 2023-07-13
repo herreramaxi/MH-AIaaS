@@ -1,9 +1,8 @@
-﻿using AIaaS.WebAPI.Data;
+﻿using AIaaS.Application.Common.Models;
+using AIaaS.Application.Common.Models.Dtos;
+using AIaaS.Domain.Entities;
 using AIaaS.WebAPI.ExtensionMethods;
-using AIaaS.WebAPI.Models;
-using AIaaS.WebAPI.Models.Dtos;
-using AIaaS.WebAPI.Models.enums;
-using AIaaS.WebAPI.Models.Operators;
+using CleanArchitecture.Application.Common.Interfaces;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Authorization;
@@ -14,7 +13,6 @@ using Microsoft.ML.AutoML;
 using Microsoft.ML.Data;
 using System.Data;
 using System.Globalization;
-using System.Security.Claims;
 
 namespace AIaaS.WebAPI.Controllers
 {
@@ -23,10 +21,10 @@ namespace AIaaS.WebAPI.Controllers
     [ApiController]
     public class DatasetsController : ControllerBase
     {
-        private readonly EfContext _dbContext;
+        private readonly IApplicationDbContext _dbContext;
         private readonly ILogger<DatasetsController> _logger;
 
-        public DatasetsController(EfContext dbContext, ILogger<DatasetsController> logger)
+        public DatasetsController(IApplicationDbContext dbContext, ILogger<DatasetsController> logger)
         {
             _dbContext = dbContext;
             _logger = logger;
@@ -56,11 +54,12 @@ namespace AIaaS.WebAPI.Controllers
         [Route("{id:int:min(1)}")]
         public async Task<IActionResult> Get(int id)
         {
-            var dataset = await _dbContext.Datasets.FindAsync(id);
-            if (dataset is null) return NotFound();
+            var dataset = await _dbContext.Datasets
+                .Include(x => x.FileStorage)
+                .Include(x => x.DataViewFile)
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            await _dbContext.Entry(dataset).Reference(x => x.FileStorage).LoadAsync();
-            await _dbContext.Entry(dataset).Reference(x => x.DataViewFile).LoadAsync();
+            if (dataset is null) return NotFound();
 
             var dto = new DatasetDto
             {
@@ -83,10 +82,11 @@ namespace AIaaS.WebAPI.Controllers
         [HttpGet("{datasetId:int}/columns")]
         public async Task<IActionResult> GetColumns([FromRoute] int datasetId)
         {
-            var dataset = await _dbContext.Datasets.FindAsync(datasetId);
-            if (dataset is null) { return NotFound(); }
+            var dataset = await _dbContext.Datasets
+                .Include(x=> x.ColumnSettings)
+                .FirstOrDefaultAsync(x=> x.Id == datasetId);
 
-            _dbContext.Entry(dataset).Collection(p => p.ColumnSettings).Load();
+            if (dataset is null) { return NotFound(); }
 
             var columnSettings = dataset.ColumnSettings
                 .Where(x => x.Include)
@@ -114,10 +114,11 @@ namespace AIaaS.WebAPI.Controllers
         [HttpGet("GetFilePreview/{datasetId:int}")]
         public async Task<ActionResult> GetFilePreview(int datasetId)
         {
-            var dataset = await _dbContext.Datasets.FindAsync(datasetId);
-            if (dataset is null) return NotFound();
+            var dataset = await _dbContext.Datasets
+                .Include(x=> x.DataViewFile)
+                .FirstOrDefaultAsync(x=> x.Id == datasetId);
 
-            await _dbContext.Entry(dataset).Reference(x => x.DataViewFile).LoadAsync();
+            if (dataset is null) return NotFound();
             if (dataset?.DataViewFile?.Data is null) return NotFound();
 
             using var memStream = new MemoryStream(dataset.DataViewFile.Data);
@@ -157,33 +158,35 @@ namespace AIaaS.WebAPI.Controllers
         [HttpGet("DownloadOriginalFile/{datasetId:int}")]
         public async Task<IActionResult> DownloadOriginalFile(int datasetId)
         {
-            var dataset = await _dbContext.Datasets.FindAsync(datasetId);
-            if (dataset is null) return NotFound();
+            var dataset = await _dbContext.Datasets
+                .Include(x=> x.FileStorage)
+                .FirstOrDefaultAsync(x=> x.Id == datasetId);
 
-            await _dbContext.Entry(dataset).Reference(x => x.FileStorage).LoadAsync();
+            if (dataset is null) return NotFound();
             if (dataset?.FileStorage?.Data is null) return NotFound();
 
             return File(dataset?.FileStorage?.Data, "application/octet-stream", dataset.FileStorage.FileName);
         }
-     
+
         [HttpGet("DownloadBinaryIdvFile/{datasetId:int}")]
         public async Task<IActionResult> DownloadBinaryIdvFile(int datasetId)
         {
-            var dataset = await _dbContext.Datasets.FindAsync(datasetId);
-            if (dataset is null) return NotFound();
+            var dataset = await _dbContext.Datasets
+                .Include(x=> x.DataViewFile)
+                .FirstOrDefaultAsync(x=> x.Id == datasetId);
 
-            await _dbContext.Entry(dataset).Reference(x => x.DataViewFile).LoadAsync();
+            if (dataset is null) return NotFound();
             if (dataset?.DataViewFile?.Data is null) return NotFound();
 
             return File(dataset?.DataViewFile?.Data, "application/octet-stream", dataset.DataViewFile.Name);
         }
-        
+
         [HttpPost]
         public async Task<IActionResult> Create(DatasetDto datasetDto)
         {
             if (datasetDto is null)
                 return BadRequest("Dataset is required");
-         
+
             var dataset = new Dataset()
             {
                 Name = datasetDto.Name,
@@ -191,7 +194,6 @@ namespace AIaaS.WebAPI.Controllers
                 Delimiter = datasetDto.Delimiter,
                 MissingRealsAsNaNs = datasetDto.MissingRealsAsNaNs
             };
-
             var columnSettings = datasetDto.ColumnSettings.Select(x => new ColumnSetting
             {
                 ColumnName = x.ColumnName,
@@ -201,11 +203,11 @@ namespace AIaaS.WebAPI.Controllers
 
             dataset.ColumnSettings.AddRange(columnSettings);
 
-            await _dbContext.AddAsync(dataset);
+            await _dbContext.Datasets.AddAsync(dataset);
             await _dbContext.SaveChangesAsync();
 
             return Created("", dataset.Id);
-        }  
+        }
 
         [HttpPost("Upload/{datasetId}")]
         public async Task<IActionResult> Upload([FromForm] IFormFile file, int datasetId)
@@ -217,12 +219,12 @@ namespace AIaaS.WebAPI.Controllers
                 if (file is null)
                     return BadRequest("File is required");
 
-                var dataset = await _dbContext.Datasets.FindAsync(datasetId);
+                var dataset = await _dbContext.Datasets
+                    .Include(x=> x.ColumnSettings)
+                    .FirstOrDefaultAsync(x=> x.Id == datasetId);
 
                 if (dataset is null)
                     return BadRequest("Dataset not found");
-
-                await _dbContext.Entry(dataset).Collection(x => x.ColumnSettings).LoadAsync();
 
                 filePath = await SaveTempFile(file);
                 using var reader = file.OpenReadStream();
@@ -306,7 +308,7 @@ namespace AIaaS.WebAPI.Controllers
             await _dbContext.SaveChangesAsync();
 
             return Ok();
-        }    
+        }
 
         [HttpPost("Preview")]
         public async Task<IActionResult> Preview([FromForm] IFormFile file, [FromForm] string? delimiter = null, [FromForm] bool missingRealsAsNaNs = false)
@@ -411,6 +413,6 @@ namespace AIaaS.WebAPI.Controllers
             await fileStream.FlushAsync();
 
             return filePath;
-        }      
+        }
     }
 }

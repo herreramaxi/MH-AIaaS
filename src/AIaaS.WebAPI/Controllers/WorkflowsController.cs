@@ -1,10 +1,17 @@
-﻿using AIaaS.WebAPI.CQRS.Commands;
-using AIaaS.WebAPI.CQRS.Queries;
-using AIaaS.WebAPI.Data;
-using AIaaS.WebAPI.Models;
-using AIaaS.WebAPI.Models.Dtos;
+﻿using AIaaS.Application.Common.Models;
+using AIaaS.Application.Common.Models.Dtos;
+using AIaaS.Application.Workflows.Commands.CreateWorkflow;
+using AIaaS.Application.Workflows.Commands.RemoveWorkflow;
+using AIaaS.Application.Workflows.Commands.RenameWorkflow;
+using AIaaS.Application.Workflows.Commands.RunWorkflow;
+using AIaaS.Application.Workflows.Commands.SaveWorkflow;
+using AIaaS.Application.Workflows.Commands.ValidateWorkflow;
+using AIaaS.Application.Workflows.Queries.GetAllWorkflows;
+using AIaaS.Application.Workflows.Queries.GetPreviewWorkflow;
+using AIaaS.Application.Workflows.Queries.GetWorkflowById;
 using Ardalis.Result;
 using Ardalis.Result.AspNetCore;
+using CleanArchitecture.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,10 +23,10 @@ namespace AIaaS.WebAPI.Controllers
     [ApiController]
     public class WorkflowsController : ControllerBase
     {
-        private readonly EfContext _dbContext;
+        private readonly IApplicationDbContext _dbContext;
         private readonly IMediator _mediator;
 
-        public WorkflowsController(EfContext dbContext, IMediator mediator)
+        public WorkflowsController(IApplicationDbContext dbContext, IMediator mediator)
         {
             _dbContext = dbContext;
             _mediator = mediator;

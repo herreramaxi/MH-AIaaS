@@ -1,5 +1,5 @@
-﻿using AIaaS.WebAPI.Data;
-using AIaaS.WebAPI.Models.Dtos;
+﻿using AIaaS.Application.Common.Models.Dtos;
+using CleanArchitecture.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,9 +11,9 @@ namespace AIaaS.WebAPI.Controllers
     [ApiController]
     public class MLModelsController : ControllerBase
     {
-        private readonly EfContext _dbContext;
+        private readonly IApplicationDbContext _dbContext;
 
-        public MLModelsController(EfContext dbContext)
+        public MLModelsController(IApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
         }

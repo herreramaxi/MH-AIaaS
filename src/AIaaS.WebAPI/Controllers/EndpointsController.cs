@@ -1,7 +1,7 @@
-﻿using AIaaS.WebAPI.Data;
-using AIaaS.WebAPI.Models;
-using AIaaS.WebAPI.Models.Dtos;
-using AIaaS.WebAPI.Models.enums;
+﻿using AIaaS.Application.Common.Models.Dtos;
+using AIaaS.Domain.Entities;
+using AIaaS.Domain.Entities.enums;
+using CleanArchitecture.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,24 +15,22 @@ namespace AIaaS.WebAPI.Controllers
     [ApiController]
     public class EndpointsController : ControllerBase
     {
-        private readonly EfContext _dbContext;
+        private readonly IApplicationDbContext _dbContext;
 
-        public EndpointsController(EfContext dbContext)
-        {            
+        public EndpointsController(IApplicationDbContext dbContext)
+        {
             _dbContext = dbContext;
         }
 
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            var endpointsDto = (await _dbContext.Endpoints.ToListAsync())
+            var endpointsDto = (await _dbContext.Endpoints
+                .Include(x => x.MLModel)
+                .ThenInclude(x => x.Workflow)
+                .ToListAsync())
                 .Select((x) =>
                 {
-                    _dbContext.Entry(x).Reference(y => y.MLModel).Load();
-
-                    if (x.MLModel is not null)
-                        _dbContext.Entry(x.MLModel).Reference(y => y.Workflow).Load();
-
                     var dto = new EndpointDto
                     {
                         Id = x.Id,
@@ -59,15 +57,13 @@ namespace AIaaS.WebAPI.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var endpoint = await _dbContext.Endpoints.FindAsync(id);
+            var endpoint = await _dbContext.Endpoints
+                .Include(x => x.MLModel)
+                .ThenInclude(x => x.Workflow)
+                .FirstOrDefaultAsync(x => x.Id == id);
 
             if (endpoint is null)
                 return NotFound();
-
-            await _dbContext.Entry(endpoint).Reference(y => y.MLModel).LoadAsync();
-
-            if (endpoint.MLModel is not null)
-                await _dbContext.Entry(endpoint.MLModel).Reference(y => y.Workflow).LoadAsync();
 
             var dto = new
             {
@@ -129,14 +125,14 @@ namespace AIaaS.WebAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] EndpointDto endpointDto)
         {
-            var workflow = await _dbContext.Workflows.FindAsync(endpointDto.WorkflowId);
+            var workflow = await _dbContext.Workflows
+                .Include(x => x.MLModel)
+                .FirstOrDefaultAsync(x => x.Id == endpointDto.WorkflowId);
 
             if (workflow is null)
             {
                 return BadRequest("Workflow not found");
             }
-
-            await _dbContext.Entry(workflow).Reference(x => x.MLModel).LoadAsync();
 
             if (workflow.MLModel is null)
             {
