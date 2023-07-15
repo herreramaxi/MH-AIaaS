@@ -22,7 +22,7 @@ jobs:
           # Update this line with the directory that contains your tests project file          
           name: Build
           command: |
-            dotnet build -c Release --exclude 'test/*.csproj'
+            dotnet build -c Release
   publish:
     #working_directory: ~/DevOpsSec-CA
     docker:
