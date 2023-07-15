@@ -128,7 +128,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 
         override public async Task GenerateOuput(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
-            if (context.Workflow.MLModel?.ModelMetrics is null) return;
+            if (context.Workflow.MLModel is null || string.IsNullOrEmpty(context.MetricsSerialized) ) return;
 
             await _workflowService.UpdateModelMetrics(context.Workflow, context.Task.Value, context.MetricsSerialized, cancellationToken);
             root.Data.Parameters = new Dictionary<string, object>();
