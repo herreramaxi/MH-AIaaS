@@ -1,14 +1,7 @@
 ﻿using AIaaS.Application.Common.Models;
 using AIaaS.Application.Common.Models.Dtos;
-using AIaaS.Application.Workflows.Commands.CreateWorkflow;
-using AIaaS.Application.Workflows.Commands.RemoveWorkflow;
-using AIaaS.Application.Workflows.Commands.RenameWorkflow;
-using AIaaS.Application.Workflows.Commands.RunWorkflow;
-using AIaaS.Application.Workflows.Commands.SaveWorkflow;
-using AIaaS.Application.Workflows.Commands.ValidateWorkflow;
-using AIaaS.Application.Workflows.Queries.GetAllWorkflows;
-using AIaaS.Application.Workflows.Queries.GetPreviewWorkflow;
-using AIaaS.Application.Workflows.Queries.GetWorkflowById;
+using AIaaS.Application.Features.Workflows.Commands;
+using AIaaS.Application.Features.Workflows.Queries;
 using Ardalis.Result;
 using Ardalis.Result.AspNetCore;
 using CleanArchitecture.Application.Common.Interfaces;

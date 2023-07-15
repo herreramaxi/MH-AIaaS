@@ -8,7 +8,6 @@ namespace AIaaS.Application.Common.Models
         public int DatasetId { get; set; }
         public string ColumnName { get; set; }
         public bool Include { get; set; }
-        //"text" | "numeric" | "boolean" | "date"
         public string Type { get; set; }
     }
 

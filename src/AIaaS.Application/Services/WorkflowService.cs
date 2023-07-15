@@ -1,4 +1,4 @@
-﻿using AIaaS.Application.Specifications;
+﻿using AIaaS.Application.Specifications.Workflows;
 using AIaaS.Domain.Entities;
 using AIaaS.Domain.Entities.enums;
 using AIaaS.Domain.Interfaces;

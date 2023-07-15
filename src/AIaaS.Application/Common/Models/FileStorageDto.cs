@@ -1,6 +1,4 @@
-﻿using AIaaS.Application.Common.Models;
-
-namespace AIaaS.Application.Common.Models
+﻿namespace AIaaS.Application.Common.Models
 {
     public class FileStorageDto: AuditableEntityDto
     {
