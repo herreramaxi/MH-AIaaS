@@ -2,11 +2,15 @@
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities;
 using AIaaS.Domain.Entities.enums;
+using AIaaS.Domain.Interfaces;
+using AIaaS.WebAPI.Interfaces;
+using AIaaS.WebAPI.Services;
 using CleanArchitecture.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace AIaaS.Application.Common.Models.Operators
 {
@@ -15,12 +19,10 @@ namespace AIaaS.Application.Common.Models.Operators
     public class EvaluateModelOperator : WorkflowOperatorAbstract
     {
         private readonly ILogger<EvaluateModelOperator> _logger;
-        private readonly IApplicationDbContext _dbContext;
 
-        public EvaluateModelOperator(ILogger<EvaluateModelOperator> logger, IApplicationDbContext dbContext)
+        public EvaluateModelOperator(ILogger<EvaluateModelOperator> logger, IWorkflowService workflowService) : base(workflowService)
         {
             _logger = logger;
-            _dbContext = dbContext;
         }
 
         public override Task Hydrate(WorkflowContext context, WorkflowNodeDto root)
@@ -39,7 +41,7 @@ namespace AIaaS.Application.Common.Models.Operators
             return true;
         }
 
-        public override async Task Run(WorkflowContext context, WorkflowNodeDto root)
+        public override async Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(context.LabelColumn))
             {
@@ -59,15 +61,21 @@ namespace AIaaS.Application.Common.Models.Operators
                 return;
             }
 
-            IDataView predictions = context.TrainedModel.Transform(context.TestData);          
-     
+            if (context.Task is null)
+            {
+                root.SetAsFailed($"ML Task not found, please ensure the 'Train Model' operator is correctly configured");
+                return;
+            }
+
+            IDataView predictions = context.TrainedModel.Transform(context.TestData);
+
             //TODO: Configure score column
-            if (context.Task == "Regression")
+            if (context.Task == MetricTypeEnum.Regression)
             {
                 var metrics = context.MLContext.Regression.Evaluate(predictions, labelColumnName: context.LabelColumn, scoreColumnName: "Score");
                 var modelMetrics = new RegressionMetricsDto
                 {
-                    Task = context.Task,
+                    Task = context.Task.ToString(),
                     LossFunction = metrics.LossFunction.ToString(),
                     MeanAbsoluteError = metrics.MeanAbsoluteError.ToString(),
                     MeanSquaredError = metrics.MeanSquaredError.ToString(),
@@ -78,12 +86,12 @@ namespace AIaaS.Application.Common.Models.Operators
 
                 PrintRegressionMetrics(context.Trainer?.ToString() ?? "N/A", metrics);
             }
-            else if (context.Task == "BinaryClassification")
+            else if (context.Task == MetricTypeEnum.BinaryClassification)
             {
                 var metrics = context.MLContext.BinaryClassification.Evaluate(predictions, labelColumnName: context.LabelColumn, scoreColumnName: "Score");
                 var modelMetrics = new BinaryClasifficationMetricsDto
                 {
-                    Task = context.Task,
+                    Task = context.Task.ToString(),
                     LogLossReduction = metrics.LogLossReduction.ToString(),
                     Accuracy = metrics.Accuracy.ToString(),
                     LogLoss = metrics.LogLoss.ToString(),
@@ -106,7 +114,7 @@ namespace AIaaS.Application.Common.Models.Operators
             {
                 root.SetAsFailed("Model not found, please add a 'Train Model' operator into the pipeline");
                 return;
-            }
+            }         
         }
 
         public void PrintRegressionMetrics(string name, RegressionMetrics metrics)
@@ -122,35 +130,13 @@ namespace AIaaS.Application.Common.Models.Operators
             _logger.LogInformation($"*************************************************");
         }
 
-        override public async Task GenerateOuput(WorkflowContext context, WorkflowNodeDto root, IApplicationDbContext dbContext)
+        override public async Task GenerateOuput(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
-            if (context.Workflow.MLModel is null) return;
-                     
-            var metrictType = this.GetMetricType(context.Task);
-            if (context.Workflow.MLModel.ModelMetrics is null)
-            {
-                context.Workflow.MLModel.ModelMetrics = new ModelMetrics
-                {
-                    MetricType = metrictType,
-                    Data = context.MetricsSerialized
-                };
-            }
-            else
-            {
-                context.Workflow.MLModel.ModelMetrics.MetricType = metrictType;
-                context.Workflow.MLModel.ModelMetrics.Data = context.MetricsSerialized;
-            }
+            if (context.Workflow.MLModel?.ModelMetrics is null) return;
 
-            await _dbContext.SaveChangesAsync();
-
+            await _workflowService.UpdateModelMetrics(context.Workflow, context.Task.Value, context.MetricsSerialized, cancellationToken);
             root.Data.Parameters = new Dictionary<string, object>();
             root.Data.Parameters.Add("ModelMetricsId", context.Workflow.MLModel.ModelMetrics.Id);
-        }
-
-        private MetricTypeEnum GetMetricType(string? task)
-        {
-             Enum.TryParse<MetricTypeEnum>(task, out MetricTypeEnum metricType);
-            return metricType;
         }
     }
 }

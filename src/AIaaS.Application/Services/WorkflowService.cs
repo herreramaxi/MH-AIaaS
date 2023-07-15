@@ -1,218 +1,62 @@
-﻿using AIaaS.Application.Common.Models;
-using AIaaS.Application.Common.Models.Dtos;
-
-using AIaaS.WebAPI.ExtensionMethods;
+﻿using AIaaS.Application.Specifications;
+using AIaaS.Domain.Entities;
+using AIaaS.Domain.Entities.enums;
+using AIaaS.Domain.Interfaces;
 using AIaaS.WebAPI.Interfaces;
-
-
-using Ardalis.Result;
-using CleanArchitecture.Application.Common.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Microsoft.ML;
-using System.Text.Json;
 
 namespace AIaaS.WebAPI.Services
 {
     public class WorkflowService : IWorkflowService
     {
-        private readonly IEnumerable<IWorkflowOperator> _workflowOperators;
-        private readonly IApplicationDbContext _dbContext;
-        private readonly ILogger<IWorkflowService> _logger;
+        private readonly IRepository<Workflow> _workflowRepository;
+        private readonly IReadRepository<Workflow> _readRepositoryWorkflow;
 
-        public WorkflowService(IEnumerable<IWorkflowOperator> workflowOperators, IApplicationDbContext dbContext, ILogger<IWorkflowService> logger)
+        public WorkflowService(IRepository<Workflow> workflowRepository, IReadRepository<Workflow> readRepositoryWorkflow)
         {
-            _workflowOperators = workflowOperators;
-            _dbContext = dbContext;
-            _logger = logger;
+            _workflowRepository = workflowRepository;
+            _readRepositoryWorkflow = readRepositoryWorkflow;
         }
 
-        public async Task<Result<WorkflowDto>> Run(WorkflowDto workflowDto)
+        public async Task<Workflow?> GetWorkflowByIdWithModel(int workflowId, CancellationToken cancellationToken)
         {
-            try
-            {
-                var workflow = await _dbContext.Workflows            
-                    .Include(x=> x.MLModel)
-                        .ThenInclude(x=> x.ModelMetrics)
-                    .Include(x => x.WorkflowDataViews)
-                    .FirstOrDefaultAsync(w => w.Id == workflowDto.Id);
+            var spec = new WorkflowByIdWithModelSpec(workflowId);
+            var workflow = await _readRepositoryWorkflow.FirstOrDefaultAsync(spec, cancellationToken);
 
-                if (workflow is null)
-                {
-                    return Result.NotFound("Workflow not found");
-                }
-                                
-                if (string.IsNullOrEmpty(workflowDto?.Root))
-                {
-                    return Result.Error("Workflow is required, root property is empty");
-                }
-
-                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
-
-                if (workflowGraphDto is null)
-                {
-                    return Result.Error("Not able to process workflow");
-                }
-
-                var context = new WorkflowContext()
-                {
-                    MLContext = new MLContext(seed: 0),
-                    Workflow = workflow,
-                    RunWorkflow = true
-                };
-
-                //TODO: maybe remove if implement versioning
-                workflow.WorkflowDataViews.Clear();
-
-                var nodes = workflowGraphDto.Root.ToList(true);
-
-                foreach (var node in nodes)
-                {
-                    await this.ProcessNode(node, context);
-                }
-
-                var workflowSerialized = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-
-                workflow.Data = workflowSerialized;
-
-                _dbContext.Workflows.Update(workflow);
-                await _dbContext.SaveChangesAsync();
-
-                workflowDto.Root = workflow.Data;
-                workflowDto.ModifiedOn = workflow.ModifiedOn;
-                workflowDto.ModifiedBy = workflow.ModifiedBy;
-                workflowDto.IsModelGenerated = workflow.MLModel != null;
-
-                return Result.Success(workflowDto);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error when running workflow", ex.Message);
-
-                return Result.Error($"Error when running workflow: {ex.Message}");
-            }
+            return workflow;
         }
 
-        public async Task<Result<WorkflowDto>> Validate(WorkflowDto workflowDto)
-        {
-            try
-            {
-                var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+        public async Task<Workflow?> WorkflowByIdIncludeAll(int workflowId, CancellationToken cancellationToken)
+        {            
+            var spec = new WorkflowByIdIncludeAllSpec(workflowId);
+            var workflow = await _readRepositoryWorkflow.FirstOrDefaultAsync(spec, cancellationToken);
 
-                if (workflow is null)
-                {
-                    return Result.NotFound("Workflow not found");
-                }
-
-                if (workflowDto.Root is null)
-                {
-                    return Result.Error("Not able to process workflow, root property is empty");
-                }
-
-                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
-
-                if (workflowGraphDto is null)
-                {
-                    return Result.Error("Not able to process workflow, deserealization failed");
-                }
-
-                var context = new WorkflowContext()
-                {
-                    MLContext = new MLContext(seed: 0),
-                    Workflow = workflow
-                };
-
-                var nodes = workflowGraphDto.Root.ToList(true);
-
-                foreach (var node in nodes)
-                {
-                    await this.ProcessNode(node, context);
-                }
-
-                //await TraverseTreeDFS(workflowGraphDto.Root, context);
-
-                workflowDto.Root = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-                return Result.Success(workflowDto);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error when validating workflow", ex.Message);
-
-                return Result.Error($"Error when validating workflow: {ex.Message}");
-            }
+            return workflow;
         }
 
-        private async Task ProcessNode(WorkflowNodeDto node, WorkflowContext context)
+        public async Task UpdateModel(Workflow workflow, MemoryStream modelData, CancellationToken cancellationToken)
         {
-            if (node is null)
-                return;
-
-            var workflowOperator = _workflowOperators.FirstOrDefault(x => x.Type.Equals(node.Type, StringComparison.InvariantCultureIgnoreCase));
-            if (workflowOperator is null)
-            {
-                node.SetAsFailed($"Workflow operator not found for type {node.Type}");
-                return;
-            }
-
-            try
-            {
-                workflowOperator.Preprocessing(context, node);
-                await workflowOperator.Hydrate(context, node);
-                workflowOperator.PropagateDatasetColumns(context, node);
-                var isValid = workflowOperator.Validate(context, node);
-
-                if (context.RunWorkflow && isValid)
-                {
-                    //TODO: improve error handling, operator should return success or not, and root.SetAsFailed in another place
-                    await workflowOperator.Run(context, node);
-                    //TODO: if all good then generate dataview
-                    await workflowOperator.GenerateOuput(context, node, _dbContext);
-                }
-            }
-            catch (Exception ex)
-            {
-                node.SetAsFailed($"Error when executing operator {node.Type}: {ex.Message}");
-                return;
-            }
+            workflow.AddOrUpdateMLModelData(modelData);
+            await _workflowRepository.UpdateAsync(workflow, cancellationToken);
         }
 
+        public async Task UpdateModelMetrics(Workflow workflow, MetricTypeEnum metricType, string modelSerialized, CancellationToken cancellationToken)
+        {
+            workflow.MLModel?.UpdateModelMetrics(metricType, modelSerialized);
+            await _workflowRepository.UpdateAsync(workflow, cancellationToken);
+        }
 
+        public async Task<WorkflowDataView> AddWorkflowDataView(Workflow workflow, string nodeId, string nodeType, MemoryStream dataViewStream, CancellationToken cancellationToken)
+        {
+            var dataView = workflow.AddOrUpdateDataView(nodeId, nodeType, dataViewStream);
+            await _workflowRepository.UpdateAsync(workflow, cancellationToken);
 
-        //private async Task TraverseTreeDFS(WorkflowNodeDto? root, WorkflowContext context)
-        //{
-        //    if (root is null)
-        //        return;
+            return dataView;
+        }
 
-        //    var workflowOperator = _workflowOperators.FirstOrDefault(x => x.Type.Equals(root.Type, StringComparison.InvariantCultureIgnoreCase));
-        //    if (workflowOperator is null)
-        //    {
-        //        root.SetAsFailed($"Workflow operator not found for type {root.Type}");
-        //        return;
-        //    }
-
-        //    var child = root.Children?.FirstOrDefault();
-
-        //    try
-        //    {
-        //        workflowOperator.Preprocessing(context, root);
-        //        await workflowOperator.Hydrate(context, root);
-        //        workflowOperator.PropagateDatasetColumns(context, root);
-        //        var isValid = workflowOperator.Validate(context, root);
-        //        //workflowOperator.Postprocessing(context, root);
-        //        if (context.RunWorkflow && isValid)
-        //        {
-        //            await workflowOperator.Run(context, root);
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        root.SetAsFailed($"Error when executing operator {root.Type}: {ex.Message}");
-        //        return;
-        //    }           
-
-        //    await TraverseTreeDFS(child, context);
-        //}
+        public async Task UpdateWorkflowData(Workflow workflow, string data, CancellationToken cancellationToken)
+        {
+            workflow.UpdateData(data);
+            await _workflowRepository.UpdateAsync(workflow, cancellationToken);
+        }       
     }
 }

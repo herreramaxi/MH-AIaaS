@@ -4,9 +4,7 @@ using AIaaS.WebAPI.CQRS.Handlers;
 using AIaaS.WebAPI.Interfaces;
 using Ardalis.Result;
 using AutoMapper;
-using CleanArchitecture.Application.Common.Interfaces;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 
@@ -24,14 +22,16 @@ namespace AIaaS.Application.Workflows.Commands.RunWorkflow
 
     public class RunWorkflowHandler : BaseWorkflowHandler, IRequestHandler<RunWorkflowCommand, Result<WorkflowDto>>
     {
-        private IApplicationDbContext _dbContext;
+        private readonly IWorkflowService _workflowService;
         private readonly IMapper _mapper;
         private readonly ILogger<RunWorkflowHandler> _logger;
 
-        public RunWorkflowHandler(IEnumerable<IWorkflowOperator> workflowOperators
-            , IApplicationDbContext dbContext, IMapper mapper, ILogger<RunWorkflowHandler> logger) : base(workflowOperators, dbContext)
+        public RunWorkflowHandler(IEnumerable<IWorkflowOperator> workflowOperators,
+           IWorkflowService workflowService,
+            IMapper mapper,
+            ILogger<RunWorkflowHandler> logger) : base(workflowOperators)
         {
-            _dbContext = dbContext;
+            _workflowService = workflowService;
             _mapper = mapper;
             _logger = logger;
         }
@@ -40,12 +40,7 @@ namespace AIaaS.Application.Workflows.Commands.RunWorkflow
         {
             try
             {
-                //TODO: fix this, it is too heavy
-                var workflow = await _dbContext.Workflows
-                    .Include(x => x.MLModel)
-                    .ThenInclude(x => x.ModelMetrics)
-                    .Include(x => x.WorkflowDataViews)
-                    .FirstOrDefaultAsync(w => w.Id == request.WorkflowDto.Id);
+                var workflow = await _workflowService.WorkflowByIdIncludeAll(request.WorkflowDto.Id, cancellationToken);
 
                 if (workflow is null)
                 {
@@ -59,18 +54,19 @@ namespace AIaaS.Application.Workflows.Commands.RunWorkflow
                     RunWorkflow = true
                 };
 
-                var result = await this.Run(request.WorkflowDto, context);
+                var result = await this.Run(request.WorkflowDto, context, cancellationToken);
 
                 if (!result.IsSuccess)
                 {
                     return result;
                 }
 
-                workflow.Data = result.Value.Root;
+                if (string.IsNullOrEmpty(result.Value?.Root))
+                {
+                    return Result.Error("Serialized workflow is null or empty");
+                }
 
-                _dbContext.Workflows.Update(workflow);
-                await _dbContext.SaveChangesAsync();
-
+                await _workflowService.UpdateWorkflowData(workflow, result.Value.Root, cancellationToken);
                 var mapped = _mapper.Map<Workflow, WorkflowDto>(workflow);
 
                 return Result.Success(mapped);

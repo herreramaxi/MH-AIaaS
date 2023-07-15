@@ -1,6 +1,8 @@
 ﻿
+using AIaaS.Application.Specifications;
+using AIaaS.Domain.Entities;
+using AIaaS.Domain.Interfaces;
 using Ardalis.Result;
-using CleanArchitecture.Application.Common.Interfaces;
 using MediatR;
 
 namespace AIaaS.Application.Workflows.Commands.RemoveWorkflow
@@ -17,20 +19,19 @@ namespace AIaaS.Application.Workflows.Commands.RemoveWorkflow
 
     public class RemoveWorkflowHandler : IRequestHandler<RemoveWorkflowCommand, Result>
     {
-        private readonly IApplicationDbContext _dbContext;
+        private readonly IRepository<Workflow> _workflowRepository;
 
-        public RemoveWorkflowHandler(IApplicationDbContext dbContext)
+        public RemoveWorkflowHandler(IRepository<Workflow> workflowRepository)
         {
-            _dbContext = dbContext;
+            _workflowRepository = workflowRepository;
         }
         public async Task<Result> Handle(RemoveWorkflowCommand request, CancellationToken cancellationToken)
         {
-            var workflow = await _dbContext.Workflows.FindAsync(request.WorkflowId);
+            var workflow = await _workflowRepository.FirstOrDefaultAsync(new WorkflowByIdSpec(request.WorkflowId), cancellationToken);
             if (workflow is null)
                 return Result.NotFound();
 
-            _dbContext.Workflows.Remove(workflow);
-            await _dbContext.SaveChangesAsync();
+            await _workflowRepository.DeleteAsync(workflow,cancellationToken);
 
             return Result.Success();
         }

@@ -1,4 +1,6 @@
-﻿ using AIaaS.Infrastructure.Data;
+﻿using AIaaS.Domain.Interfaces;
+using AIaaS.Infrastructure;
+using AIaaS.Infrastructure.Data;
 using CleanArchitecture.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -16,11 +18,12 @@ public static class ConfigureServices
         //Guard.Against.Null(connectionString, message: "Connection string 'DefaultConnection' not found.");
 
         services.AddDbContext<EfContext>(options =>
-            options.UseSqlServer(connectionString));
+            options.UseSqlServer(connectionString, b => b.MigrationsAssembly(typeof(IInfrastructureMarker).Assembly.FullName)));
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<EfContext>());
-
         services.AddScoped<ApplicationDbContextInitialiser>();
+        services.AddScoped(typeof(IReadRepository<>), typeof(EfRepository<>));
+        services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
 
         //services
         //    .AddDefaultIdentity<ApplicationUser>()

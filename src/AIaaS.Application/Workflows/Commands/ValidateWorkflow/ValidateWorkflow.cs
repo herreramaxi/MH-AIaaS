@@ -1,9 +1,11 @@
 ﻿using AIaaS.Application.Common.Models;
+using AIaaS.Application.Specifications;
 using AIaaS.Application.Workflows.Commands.RunWorkflow;
+using AIaaS.Domain.Entities;
+using AIaaS.Domain.Interfaces;
 using AIaaS.WebAPI.CQRS.Handlers;
 using AIaaS.WebAPI.Interfaces;
 using Ardalis.Result;
-using CleanArchitecture.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
@@ -22,15 +24,15 @@ namespace AIaaS.Application.Workflows.Commands.ValidateWorkflow
 
     public class ValidateWorkflowHandler : BaseWorkflowHandler, IRequestHandler<ValidateWorkflowCommand, Result<WorkflowDto>>
     {
-        private readonly IApplicationDbContext _dbContext;
+        private readonly IReadRepository<Workflow> _readRepository;
         private readonly ILogger<RunWorkflowHandler> _logger;
 
         public ValidateWorkflowHandler(
             IEnumerable<IWorkflowOperator> workflowOperators,
-            IApplicationDbContext dbContext,
-            ILogger<RunWorkflowHandler> logger) : base(workflowOperators, dbContext)
+            IReadRepository<Workflow> readRepository,
+            ILogger<RunWorkflowHandler> logger) : base(workflowOperators)
         {
-            _dbContext = dbContext;
+            _readRepository = readRepository;
             _logger = logger;
         }
 
@@ -39,7 +41,7 @@ namespace AIaaS.Application.Workflows.Commands.ValidateWorkflow
             try
             {
                 var workflowDto = request.WorkflowDto;
-                var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+                var workflow = await _readRepository.FirstOrDefaultAsync(new WorkflowByIdSpec(workflowDto.Id), cancellationToken);
 
                 if (workflow is null)
                 {
@@ -53,7 +55,7 @@ namespace AIaaS.Application.Workflows.Commands.ValidateWorkflow
                     RunWorkflow = false
                 };
 
-                var result = await Run(workflowDto, context);
+                var result = await Run(workflowDto, context, cancellationToken);
 
                 return result;
             }

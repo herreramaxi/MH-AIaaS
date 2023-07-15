@@ -1,6 +1,7 @@
 ﻿
 using AIaaS.Application.Common.Models;
 using AIaaS.Domain.Entities;
+using AIaaS.Domain.Interfaces;
 using AutoMapper;
 using CleanArchitecture.Application.Common.Interfaces;
 using MediatR;
@@ -13,12 +14,12 @@ namespace AIaaS.Application.Workflows.Commands.CreateWorkflow
     }
     public class CreateWorkflowHandler : IRequestHandler<CreateWorkflowCommand, WorkflowDto>
     {
-        private readonly IApplicationDbContext _dbContext;
+        private readonly IRepository<Workflow> _workflowRepository;
         private readonly IMapper _mapper;
 
-        public CreateWorkflowHandler(IApplicationDbContext dbContext, IMapper mapper)
+        public CreateWorkflowHandler(IRepository<Workflow> workflowRepository, IMapper mapper)
         {
-            _dbContext = dbContext;
+            _workflowRepository = workflowRepository;
             _mapper = mapper;
         }
         public async Task<WorkflowDto> Handle(CreateWorkflowCommand request, CancellationToken cancellationToken)
@@ -28,8 +29,7 @@ namespace AIaaS.Application.Workflows.Commands.CreateWorkflow
                 Name = request.WorkflowName
             };
 
-            await _dbContext.Workflows.AddAsync(workflow);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _workflowRepository.AddAsync(workflow, cancellationToken);
 
             var mapped = _mapper.Map<Workflow, WorkflowDto>(workflow);
             return mapped;

@@ -11,15 +11,13 @@ namespace AIaaS.WebAPI.CQRS.Handlers
     public class BaseWorkflowHandler
     {
         private readonly IEnumerable<IWorkflowOperator> _workflowOperators;
-        private readonly IApplicationDbContext _dbContext;
 
-        public BaseWorkflowHandler(IEnumerable<IWorkflowOperator> workflowOperators, IApplicationDbContext IApplicationDbContext) 
+        public BaseWorkflowHandler(IEnumerable<IWorkflowOperator> workflowOperators) 
         {
             _workflowOperators = workflowOperators;
-            _dbContext = IApplicationDbContext;
         }
 
-        public async Task<Result<WorkflowDto>> Run(WorkflowDto workflowDto, WorkflowContext context)
+        public async Task<Result<WorkflowDto>> Run(WorkflowDto workflowDto, WorkflowContext context, CancellationToken cancellationToken)
         {
             var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var workflowGraphDto = JsonSerializer.Deserialize<WorkflowGraphDto>(workflowDto.Root, jsonOptions);
@@ -33,7 +31,7 @@ namespace AIaaS.WebAPI.CQRS.Handlers
 
             foreach (var node in nodes)
             {
-                await this.ProcessNode(node, context);
+                await this.ProcessNode(node, context, cancellationToken);
             }
 
             var workflowSerialized = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
@@ -42,7 +40,7 @@ namespace AIaaS.WebAPI.CQRS.Handlers
             return Result.Success(workflowDto);
         }
 
-        private async Task ProcessNode(WorkflowNodeDto node, WorkflowContext context)
+        private async Task ProcessNode(WorkflowNodeDto node, WorkflowContext context, CancellationToken cancellationToken)
         {
             if (node is null)
                 return;
@@ -64,9 +62,9 @@ namespace AIaaS.WebAPI.CQRS.Handlers
                 if (context.RunWorkflow && isValid)
                 {
                     //TODO: improve error handling, operator should return success or not, and root.SetAsFailed in another place
-                    await workflowOperator.Run(context, node);
+                    await workflowOperator.Run(context, node, cancellationToken);
                     //TODO: if all good then generate dataview
-                    await workflowOperator.GenerateOuput(context, node, _dbContext);
+                    await workflowOperator.GenerateOuput(context, node, cancellationToken);
                 }
             }
             catch (Exception ex)

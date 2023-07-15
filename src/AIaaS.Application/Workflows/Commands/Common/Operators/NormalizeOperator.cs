@@ -1,6 +1,8 @@
 ﻿using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
+using AIaaS.WebAPI.ExtensionMethods;
+using AIaaS.WebAPI.Interfaces;
 using Microsoft.ML;
 using Microsoft.ML.Transforms;
 using System.Text.Json;
@@ -14,6 +16,10 @@ namespace AIaaS.Application.Common.Models.Operators
     {
         private string? _normalizationMode;
         private IList<string>? _selectedColumns;
+
+        public NormalizeOperator(IWorkflowService workflowService) : base(workflowService)
+        {
+        }
 
         public override Task Hydrate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
@@ -47,7 +53,7 @@ namespace AIaaS.Application.Common.Models.Operators
             return true;
         }
 
-        public override Task Run(WorkflowContext context, WorkflowNodeDto root)
+        public override Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             if (context.InputOutputColumns is null || !context.InputOutputColumns.Any())
             {
@@ -67,10 +73,7 @@ namespace AIaaS.Application.Common.Models.Operators
                 .ToArray();
 
             var estimator = GetNormalizingEstimator(context, selectedColumns);
-
-            context.EstimatorChain = context.EstimatorChain is not null ?
-                context.EstimatorChain.Append(estimator) :
-                estimator;
+            context.EstimatorChain = context.EstimatorChain.AppendEstimator(estimator);
 
             return Task.CompletedTask;
         }

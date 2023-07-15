@@ -1,6 +1,8 @@
-﻿namespace AIaaS.Domain.Common
+﻿using AIaaS.Domain.Entities;
+
+namespace AIaaS.Domain.Common
 {
-    public class AuditableEntity
+    public class AuditableEntity: Entity
     {
         public DateTime CreatedOn { get; set; }
         public string CreatedBy { get; set; }

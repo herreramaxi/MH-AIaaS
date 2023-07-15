@@ -1,13 +1,12 @@
 ﻿using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
+using AIaaS.Application.Specifications;
+using AIaaS.Domain.Entities;
 using AIaaS.Domain.Entities.enums;
-using CleanArchitecture.Application.Common.Interfaces;
-using CsvHelper;
-using CsvHelper.Configuration;
-using Microsoft.EntityFrameworkCore;
+using AIaaS.Domain.Interfaces;
+using AIaaS.WebAPI.ExtensionMethods;
+using AIaaS.WebAPI.Interfaces;
 using Microsoft.ML;
-using Microsoft.ML.Data;
-using System.Globalization;
 using System.Text.Json;
 
 namespace AIaaS.Application.Common.Models.Operators
@@ -17,13 +16,13 @@ namespace AIaaS.Application.Common.Models.Operators
     [OperatorParameter("SelectedColumns", "Selected columns to be included on model training", "list")]
     public class DatasetOperator : WorkflowOperatorAbstract
     {
-        private readonly IApplicationDbContext _dbContext;
         private IList<string>? _selectedColumns;
         private int? _datasetId;
+        private readonly IReadRepository<Dataset> _repository;
 
-        public DatasetOperator(IApplicationDbContext dbContext)
+        public DatasetOperator(IReadRepository<Dataset> repository, IWorkflowService workflowService) : base(workflowService)
         {
-            _dbContext = dbContext;
+            _repository = repository;
         }
 
         public override Task Hydrate(WorkflowContext mlContext, WorkflowNodeDto root)
@@ -50,22 +49,19 @@ namespace AIaaS.Application.Common.Models.Operators
             return true;
         }
 
-        public override async Task Run(WorkflowContext context, WorkflowNodeDto root)
+        public override async Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             if (_datasetId is null || _selectedColumns is null || !_selectedColumns.Any())
                 return;
 
-            context.Dataset = await _dbContext.Datasets
-                .Include(x=> x.ColumnSettings)
-                .Include(x => x.DataViewFile)
-                .FirstOrDefaultAsync(x=> x.Id == _datasetId);
+            context.Dataset = await _repository.FirstOrDefaultAsync(new DatasetByIdWithColumnSettingsAndDataViewFileSpec(_datasetId.Value));
 
             if (context.Dataset is null)
             {
                 root.SetAsFailed("Dataset not found");
                 return;
             }
-                       
+
             if (context.Dataset.DataViewFile?.Data is null)
             {
                 root.SetAsFailed("DataViewFile not found or its data is empty");
@@ -99,14 +95,11 @@ namespace AIaaS.Application.Common.Models.Operators
             var mlContext = new MLContext();
             context.DataView = mlContext.Data.LoadFromBinary(mss);
             context.InputOutputColumns = context.ColumnSettings.Select(x => new InputOutputColumnPair(x.ColumnName, x.ColumnName)).ToArray();
-      
+
             if (columnsToBeDropped.Any())
             {
                 var estimator = context.MLContext.Transforms.DropColumns(columnsToBeDropped);
-
-                context.EstimatorChain = context.EstimatorChain is not null ?
-                context.EstimatorChain.Append(estimator) :
-                estimator;               
+                context.EstimatorChain = context.EstimatorChain.AppendEstimator(estimator);
             }
         }
 

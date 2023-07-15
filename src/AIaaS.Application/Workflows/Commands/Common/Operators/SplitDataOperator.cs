@@ -1,6 +1,7 @@
 ﻿using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
+using AIaaS.WebAPI.Interfaces;
 
 namespace AIaaS.Application.Common.Models.Operators
 {
@@ -9,6 +10,10 @@ namespace AIaaS.Application.Common.Models.Operators
     public class SplitDataOperator : WorkflowOperatorAbstract
     {
         private double _fraction;
+
+        public SplitDataOperator(IWorkflowService workflowService) : base(workflowService)
+        {
+        }
 
         public override Task Hydrate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
@@ -36,7 +41,7 @@ namespace AIaaS.Application.Common.Models.Operators
             return true;
         }
 
-        public override Task Run(WorkflowContext context, WorkflowNodeDto root)
+        public override Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             var mlContext = context.MLContext;
 

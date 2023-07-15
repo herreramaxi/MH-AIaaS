@@ -1,10 +1,10 @@
 ﻿using AIaaS.Domain.Common;
+using AIaaS.Domain.Interfaces;
 
 namespace AIaaS.Domain.Entities
 {
-    public class Dataset : AuditableEntity
-    {
-        public int Id { get; set; }      
+    public class Dataset : AuditableEntity, IAggregateRoot
+    {  
         public string Name { get; set; }
         public string? Description { get; set; }
         public string Delimiter { get; set; }

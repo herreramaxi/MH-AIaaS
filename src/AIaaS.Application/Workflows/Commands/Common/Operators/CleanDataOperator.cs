@@ -1,6 +1,8 @@
 ﻿using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
+using AIaaS.WebAPI.ExtensionMethods;
+using AIaaS.WebAPI.Interfaces;
 using Microsoft.ML;
 using System.Text.Json;
 
@@ -10,10 +12,14 @@ namespace AIaaS.Application.Common.Models.Operators
     [OperatorParameter("Cleaning mode", "Cleaning mode to be applied", "list")]
     [OperatorParameter("SelectedColumns", "Columns to be cleaned", "list")]
     public class CleanDataOperator : WorkflowOperatorAbstract
-    {   
+    {
         private string? _cleanMode;
         private IList<string>? _selectedColumns;
-              
+
+        public CleanDataOperator(IWorkflowService workflowService) : base(workflowService)
+        {
+        }
+
         public override Task Hydrate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
             _cleanMode = root.GetParameterValue("Cleaning mode");
@@ -45,7 +51,7 @@ namespace AIaaS.Application.Common.Models.Operators
             return true;
         }
 
-        public override async Task Run(WorkflowContext context, Dtos.WorkflowNodeDto root)
+        public override async Task Run(WorkflowContext context, Dtos.WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             if (context.InputOutputColumns is null || !context.InputOutputColumns.Any())
             {
@@ -66,15 +72,14 @@ namespace AIaaS.Application.Common.Models.Operators
 
             if (_cleanMode.Equals("RemoveRow"))
             {
-                //TODO:
+                //TODO: Implement
+                throw new NotImplementedException("Remove row not implemented");
             }
             else
             {
                 Enum.TryParse<Microsoft.ML.Transforms.MissingValueReplacingEstimator.ReplacementMode>(_cleanMode, out var replacementMode);
                 var estimator = mlContext.Transforms.ReplaceMissingValues(selectedColumns, replacementMode);
-                context.EstimatorChain = context.EstimatorChain is not null ?
-                    context.EstimatorChain.Append(estimator) :
-                    estimator;
+                context.EstimatorChain = context.EstimatorChain.AppendEstimator(estimator);
             }
 
             return;

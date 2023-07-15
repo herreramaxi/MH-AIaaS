@@ -5,7 +5,6 @@ namespace AIaaS.Domain.Entities
 {
     public class MLEndpoint : AuditableEntity
     {
-        public int Id { get; set; }
         public string Name { get; set; }
         public string? Description { get; set; }
         public AuthenticationType? AuthenticationType { get; set; }

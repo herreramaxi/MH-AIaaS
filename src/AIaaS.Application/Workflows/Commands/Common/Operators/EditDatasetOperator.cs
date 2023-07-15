@@ -1,6 +1,8 @@
 ﻿using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
+using AIaaS.WebAPI.ExtensionMethods;
+using AIaaS.WebAPI.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Microsoft.ML.Data;
@@ -17,6 +19,10 @@ namespace AIaaS.Application.Common.Models.Operators
         private string? _dataType;
         private string? _categorical;
         private IList<string>? _selectedColumns;
+
+        public EditDatasetOPerator(IWorkflowService workflowService) : base(workflowService)
+        {
+        }
 
         public override Task Hydrate(WorkflowContext context, WorkflowNodeDto root)
         {
@@ -43,7 +49,7 @@ namespace AIaaS.Application.Common.Models.Operators
             return true;
         }
 
-        public override Task Run(WorkflowContext context, WorkflowNodeDto root)
+        public override Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             if (_selectedColumns is null || !_selectedColumns.Any() || context.InputOutputColumns is null || !context.InputOutputColumns.Any())
             {
@@ -65,10 +71,7 @@ namespace AIaaS.Application.Common.Models.Operators
                 }
 
                 var estimator = mlContext.Transforms.Conversion.ConvertType(columnsToBeConverted, dataKind);
-
-                context.EstimatorChain = context.EstimatorChain is not null ?
-                    context.EstimatorChain.Append(estimator) :
-                    estimator;
+                context.EstimatorChain = context.EstimatorChain.AppendEstimator(estimator);
             }
 
             if (!string.IsNullOrEmpty(_categorical))
@@ -81,9 +84,7 @@ namespace AIaaS.Application.Common.Models.Operators
                     return Task.CompletedTask;
                 }
 
-                context.EstimatorChain = context.EstimatorChain is not null ?
-                    context.EstimatorChain.Append(estimator) :
-                    estimator;
+                context.EstimatorChain = context.EstimatorChain.AppendEstimator(estimator);
             }
          
             return Task.CompletedTask;

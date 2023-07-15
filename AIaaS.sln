@@ -17,15 +17,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.circleci\config.yml = .circleci\config.yml
 		deploy.sh = deploy.sh
+		ef.txt = ef.txt
 		nginx.conf = nginx.conf
 		nginx.txt = nginx.txt
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIaaS.Domain", "src\AIaaS.Domain\AIaaS.Domain.csproj", "{E82BDC69-5F73-4084-989F-DDAA2504D3DB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AIaaS.Domain", "src\AIaaS.Domain\AIaaS.Domain.csproj", "{E82BDC69-5F73-4084-989F-DDAA2504D3DB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIaaS.Application", "src\AIaaS.Application\AIaaS.Application.csproj", "{064BDD98-1FB9-40DE-AAD9-B95392869614}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AIaaS.Application", "src\AIaaS.Application\AIaaS.Application.csproj", "{064BDD98-1FB9-40DE-AAD9-B95392869614}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIaaS.Infrastructure", "src\AIaaS.Infrastructure\AIaaS.Infrastructure.csproj", "{F08C7E4B-E5A9-491E-9531-07B661DCE657}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AIaaS.Infrastructure", "src\AIaaS.Infrastructure\AIaaS.Infrastructure.csproj", "{F08C7E4B-E5A9-491E-9531-07B661DCE657}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,0 +1,2 @@
+ dotnet ef migrations add unknown --verbose --project ../AIaaS.Infrastructure/AIaaS.Infrastructure.csproj
+ dotnet ef migrations remove --project ../AIaaS.Infrastructure/

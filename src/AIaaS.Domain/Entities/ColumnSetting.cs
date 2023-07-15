@@ -4,7 +4,6 @@ namespace AIaaS.Domain.Entities
 {
     public class ColumnSetting : AuditableEntity
     {
-        public int Id { get; set; }
         public int DatasetId { get; set; }
         public Dataset Dataset { get; set; }
         public string ColumnName { get; set; }

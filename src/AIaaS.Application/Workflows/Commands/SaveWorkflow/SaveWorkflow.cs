@@ -1,9 +1,10 @@
 ﻿
 using AIaaS.Application.Common.Models;
+using AIaaS.Application.Specifications;
 using AIaaS.Domain.Entities;
+using AIaaS.Domain.Interfaces;
 using Ardalis.Result;
 using AutoMapper;
-using CleanArchitecture.Application.Common.Interfaces;
 using MediatR;
 
 namespace AIaaS.Application.Workflows.Commands.SaveWorkflow
@@ -19,26 +20,22 @@ namespace AIaaS.Application.Workflows.Commands.SaveWorkflow
 
     public class SaveWorkflowHandler : IRequestHandler<SaveWorkflowCommand, Result<WorkflowDto>>
     {
-        private readonly IApplicationDbContext _dbContext;
+        private readonly IRepository<Workflow> _workflowRepository;
         private readonly IMapper _mapper;
 
-        public SaveWorkflowHandler(IApplicationDbContext dbContext, IMapper mapper)
+        public SaveWorkflowHandler(IRepository<Workflow> workflowRepository, IMapper mapper)
         {
-            _dbContext = dbContext;
+            _workflowRepository = workflowRepository;
             _mapper = mapper;
         }
         public async Task<Result<WorkflowDto>> Handle(SaveWorkflowCommand request, CancellationToken cancellationToken)
         {
             var workflowDto = request.WorkflowSaveDto;
-            var workflow = await _dbContext.Workflows.FindAsync(workflowDto.Id);
+            var workflow = await _workflowRepository.FirstOrDefaultAsync(new WorkflowByIdSpec(workflowDto.Id), cancellationToken);
+            if (workflow == null) return Result.NotFound();
 
-            if (workflow == null)
-                return Result.NotFound();
-
-            workflow.Data = workflowDto.Root;
-
-            _dbContext.Workflows.Update(workflow);
-            await _dbContext.SaveChangesAsync();
+            workflow.UpdateData(workflowDto.Root);
+            await _workflowRepository.UpdateAsync(workflow, cancellationToken);
 
             var mapped = _mapper.Map<Workflow, WorkflowDto>(workflow);
 

@@ -2,9 +2,12 @@
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities;
 using AIaaS.Domain.Entities.enums;
-using CleanArchitecture.Application.Common.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using AIaaS.Domain.Interfaces;
+using AIaaS.WebAPI.ExtensionMethods;
+using AIaaS.WebAPI.Interfaces;
+using AIaaS.WebAPI.Services;
 using Microsoft.ML;
+using Tensorflow.Contexts;
 
 namespace AIaaS.Application.Common.Models.Operators
 {
@@ -14,14 +17,13 @@ namespace AIaaS.Application.Common.Models.Operators
     [OperatorParameter("Trainer", "Trainer to perform the prediction or inference", "list")]
     public class TrainModelOperator : WorkflowOperatorAbstract
     {
-        private readonly IApplicationDbContext _dbContext;
         private string? _labelColumn;
         private string? _task;
         private string? _trainer;
+        private MetricTypeEnum? _taskAsEnum;
 
-        public TrainModelOperator(IApplicationDbContext dbContext)
+        public TrainModelOperator(IWorkflowService workflowService) : base(workflowService)
         {
-            _dbContext = dbContext;
         }
 
         public override Task Hydrate(WorkflowContext mlContext, WorkflowNodeDto root)
@@ -29,6 +31,11 @@ namespace AIaaS.Application.Common.Models.Operators
             _labelColumn = root.GetParameterValue("Label");
             _task = root.GetParameterValue("Task");
             _trainer = root.GetParameterValue("Trainer");
+
+            if (Enum.TryParse(_task, out MetricTypeEnum metricType))
+            {
+                _taskAsEnum = metricType;
+            }
 
             return Task.CompletedTask;
         }
@@ -53,6 +60,12 @@ namespace AIaaS.Application.Common.Models.Operators
                 return false;
             }
 
+            if (_taskAsEnum is null)
+            {
+                root.SetAsFailed($"The ML task {_task} selected is invalid, please select a valid ML task from the operator configuration");
+                return false;
+            }
+
             if (string.IsNullOrEmpty(_trainer))
             {
                 root.SetAsFailed("Please select a task trainer");
@@ -62,16 +75,16 @@ namespace AIaaS.Application.Common.Models.Operators
             return true;
         }
 
-        public override async Task Run(WorkflowContext context, WorkflowNodeDto root)
+        public override async Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
-            context.Task = _task;
+            context.Task = _taskAsEnum;
 
             if (context.ColumnSettings is null || !context.ColumnSettings.Any())
             {
                 root.SetAsFailed("Column settings not found, please select columns on dataset operator");
                 return;
             }
-            
+
             context.LabelColumn = _labelColumn;
             var features = context.ColumnSettings
                 .Where(x => !x.ColumnName.Equals(_labelColumn, StringComparison.InvariantCultureIgnoreCase))
@@ -90,13 +103,13 @@ namespace AIaaS.Application.Common.Models.Operators
                 return;
             }
 
-            var mlContext = context.MLContext;      
-            context.EstimatorChain = context.EstimatorChain is not null ?
-                context.EstimatorChain.Append(mlContext.Transforms.Concatenate("Features", features)) :
-                mlContext.Transforms.Concatenate("Features", features);
+            var mlContext = context.MLContext;
+            var estimator = mlContext.Transforms.Concatenate("Features", features);
+            context.EstimatorChain = context.EstimatorChain.AppendEstimator(estimator);
 
-            var trainer = GetTrainer(mlContext,_task, _trainer);
-            if (trainer is null) {
+            var trainer = GetTrainer(mlContext, _task, _trainer);
+            if (trainer is null)
+            {
                 root.SetAsFailed($"No trainer found for {_trainer}");
                 return;
             }
@@ -109,29 +122,12 @@ namespace AIaaS.Application.Common.Models.Operators
             using var stream = new MemoryStream();
             mlContext.Model.Save(trainedModel, context.TrainingData.Schema, stream);
             stream.Seek(0, SeekOrigin.Begin);
-                  
-            if (context.Workflow.MLModel is null)
-            {
-                var mlModel  = new MLModel
-                {
-                    Data = stream.ToArray(),
-                    Size = stream.Length,
-                    Workflow = context.Workflow
-                };
 
-                await _dbContext.MLModels.AddAsync(mlModel);
-            }
-            else
-            {
-                context.Workflow.MLModel.Data = stream.ToArray();
-                context.Workflow.MLModel.Size = stream.Length;
-            }
-
-            await _dbContext.SaveChangesAsync();
+            await _workflowService.UpdateModel(context.Workflow, stream, cancellationToken);
         }
 
-        private IEstimator<ITransformer>? GetTrainer(MLContext mlContext ,string task, string trainerName)
-        {         
+        private IEstimator<ITransformer>? GetTrainer(MLContext mlContext, string task, string trainerName)
+        {
             if (task == "Regression")
             {
                 switch (trainerName)

@@ -1,10 +1,10 @@
 ﻿using AIaaS.Domain.Common;
+using AIaaS.Domain.Interfaces;
 
 namespace AIaaS.Domain.Entities
 {
     public class WorkflowDataView : AuditableEntity
     {
-        public int Id { get; set; }
         public int WorkflowId { get; set; }
         public Workflow Workflow { get; set; } = null!;
         public string NodeId { get; set; }
