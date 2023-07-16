@@ -3,7 +3,7 @@ using AIaaS.Domain.Interfaces;
 
 namespace AIaaS.Domain.Entities
 {
-    public class WorkflowDataView : AuditableEntity
+    public class WorkflowDataView : AuditableEntity, IAggregateRoot
     {
         public int WorkflowId { get; set; }
         public Workflow Workflow { get; set; } = null!;

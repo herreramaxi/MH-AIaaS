@@ -1,12 +1,14 @@
 ﻿using AIaaS.Application.Common.Models;
+using AIaaS.Application.Specifications.Workflows;
+using AIaaS.Domain.Entities;
+using AIaaS.Domain.Interfaces;
+using AIaaS.WebAPI.ExtensionMethods;
 using Ardalis.Result;
-using CleanArchitecture.Application.Common.Interfaces;
 using MediatR;
-using Microsoft.ML;
 
 namespace AIaaS.Application.Features.Workflows.Queries
 {
-    public class GetPreviewWorkflowQuery : IRequest<Result<object>>
+    public class GetPreviewWorkflowQuery : IRequest<Result<DataViewFilePreviewDto?>>
     {
         public GetPreviewWorkflowQuery(int workflowDataviewId)
         {
@@ -16,48 +18,22 @@ namespace AIaaS.Application.Features.Workflows.Queries
         public int WorkflowDataviewId { get; }
     }
 
-    public class GetPreviewWorkflowHandler : IRequestHandler<GetPreviewWorkflowQuery, Result<object>>
+    public class GetPreviewWorkflowHandler : IRequestHandler<GetPreviewWorkflowQuery, Result<DataViewFilePreviewDto?>>
     {
-        private readonly IApplicationDbContext _dbContext;
+        private readonly IReadRepository<WorkflowDataView> _readRepository;
 
-        public GetPreviewWorkflowHandler(IApplicationDbContext dbContext)
+        public GetPreviewWorkflowHandler(IReadRepository<WorkflowDataView> readRepository)
         {
-            _dbContext = dbContext;
+            _readRepository = readRepository;
         }
-        public async Task<Result<object>> Handle(GetPreviewWorkflowQuery request, CancellationToken cancellationToken)
+        public async Task<Result<DataViewFilePreviewDto?>> Handle(GetPreviewWorkflowQuery request, CancellationToken cancellationToken)
         {
-            var dataView = await _dbContext.WorkflowDataViews.FindAsync(request.WorkflowDataviewId);
+            var dataView = await _readRepository.FirstOrDefaultAsync(new WorkflowDataViewByIdSpec(request.WorkflowDataviewId), cancellationToken);
             if (dataView?.Data is null) return Result.NotFound();
 
-            using var memStream = new MemoryStream(dataView.Data);
-            var mss = new MultiStreamSourceFile(memStream);
-            var mlContext = new MLContext();
-            var dataview = mlContext.Data.LoadFromBinary(mss);
-            var header = dataview.Schema.Select(x => x.Name);
-            var MaxRows = 100;
-            var preview = dataview.Preview(maxRows: MaxRows);
+            var dataPreview = dataView.Data.GetPreview();
 
-            var records = new List<string[]>();
-            var columns = preview.Schema.Where(x => !x.IsHidden).Select(x => new { x.Index, x.Name });
-            var columnIndices = columns.Select(x => x.Index).ToHashSet();
-
-            foreach (var row in preview.RowView)
-            {
-                var record = row.Values
-                    .Where((x, i) => columnIndices.Contains(i))
-                    .Select(x => x.Value?.ToString() ?? "")
-                    .ToArray();
-
-                records.Add(record);
-            }
-
-            object objectResult = new
-            {
-                header,
-                rows = records
-            };
-
-            return Result.Success(objectResult);
+            return Result.Success(dataPreview);
         }
     }
 }

@@ -99,11 +99,11 @@ namespace AIaaS.WebAPI.Controllers
         }
 
         [HttpGet("getPreview/{workflowDataviewId:int}")]
-        public async Task<ActionResult<object>> GetPreview(int workflowDataviewId)
+        public async Task<ActionResult<DataViewFilePreviewDto?>> GetPreview(int workflowDataviewId)
         {
             var query = new GetPreviewWorkflowQuery(workflowDataviewId);
 
-            Result<object> previewResult = await _mediator.Send(query);
+           var previewResult = await _mediator.Send(query);
 
             return previewResult.ToActionResult(this);
         }
