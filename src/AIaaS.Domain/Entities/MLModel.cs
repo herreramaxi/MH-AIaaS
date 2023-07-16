@@ -1,6 +1,5 @@
 ﻿using AIaaS.Domain.Common;
 using AIaaS.Domain.Entities.enums;
-using AIaaS.Domain.Interfaces;
 
 namespace AIaaS.Domain.Entities
 {

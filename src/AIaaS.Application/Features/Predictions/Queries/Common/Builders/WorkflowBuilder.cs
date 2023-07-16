@@ -7,7 +7,7 @@ using Ardalis.Result;
 using Microsoft.ML;
 using System.Text.Json;
 
-namespace AIaaS.WebAPI.Services.PredictionService.Builders
+namespace AIaaS.Application.Features.Predictions.Queries.Common.Builders
 {
     [PredictServiceParameterBuilder(PredictServiceBuilderType.Workflow, 4)]
     public class WorkflowBuilder : PredictServiceParameterBuilderAbstract

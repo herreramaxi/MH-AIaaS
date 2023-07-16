@@ -4,9 +4,9 @@ using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.ExtensionMethods;
 using Ardalis.Result;
 
-namespace AIaaS.WebAPI.Services.PredictionService.Builders
+namespace AIaaS.Application.Features.Predictions.Queries.Common.Builders
 {
-    [PredictServiceParameterBuilder(PredictServiceBuilderType.Runtime,5)]
+    [PredictServiceParameterBuilder(PredictServiceBuilderType.Runtime, 5)]
     public class RuntimeParameterBuilder : PredictServiceParameterBuilderAbstract
     {
         public override async Task<Result<PredictionParameter>> Build(PredictionParameter parameter)
@@ -29,7 +29,7 @@ namespace AIaaS.WebAPI.Services.PredictionService.Builders
             }
 
             parameter.RuntimeTypeInput = runtimeTypeInput;
-            parameter.RuntimeTypeOutput = runtimeTypeOutput;          
+            parameter.RuntimeTypeOutput = runtimeTypeOutput;
 
             return Result.Success(parameter);
         }

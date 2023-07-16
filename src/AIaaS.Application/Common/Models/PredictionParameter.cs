@@ -23,22 +23,16 @@ namespace AIaaS.Application.Common.Models
         public IList<string> SelectedColumns { get; internal set; }
         public bool OnlyPredictedProperties { get; private set; }
 
-        public PredictionParameter SetEnpointId(int endpointId)
+        public PredictionParameter(int endpointId)
         {
             this.EndpointId = endpointId;
-            return this;
         }
 
-        public PredictionParameter SetStreamReader(StreamReader streamReader)
+        public PredictionParameter(int endpointId, StreamReader streamReader, bool onlyPredictedProperties = false)
         {
+            this.EndpointId = endpointId;
             this.StreamReader = streamReader;
-            return this;
-        }
-
-        public PredictionParameter SetOnlyPredictedProperties(bool onlyPredictedProperties)
-        {
             this.OnlyPredictedProperties = onlyPredictedProperties;
-            return this;
-        }
+        }       
     }
 }

@@ -1,8 +1,8 @@
 ﻿using AIaaS.Application.Common.Models.CustomAttributes;
+using AIaaS.Application.Features.Predictions.Queries.Common;
 using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.PipelineBehaviours;
 using AIaaS.WebAPI.Services;
-using AIaaS.WebAPI.Services.PredictionService;
 using FluentValidation;
 using MediatR;
 using System.Reflection;
@@ -28,7 +28,6 @@ public static class ConfigureServices
 
         services.AddScoped<IOperatorService, OperatorService>();
         services.AddScoped<IWorkflowService, WorkflowService>();
-        services.AddScoped<IPredictionService, PredictionService>();
         services.AddScoped<IPredictionBuilderDirector, PredictionBuilderDirector>();
 
         var workflowOperatorTypes = typeof(IWebApiMarker).Assembly

@@ -1,8 +1,9 @@
-﻿using AIaaS.Application.Common.Models;
-using AIaaS.WebAPI.Interfaces;
-using AIaaS.WebAPI.Services;
+﻿using AIaaS.Application.Features.Predictions.Queries.GetPredictionInputSample;
+using AIaaS.Application.Features.Predictions.Queries.PredictInputSample;
+using AIaaS.WebAPI.Infrastructure;
 using Ardalis.Result;
 using Ardalis.Result.AspNetCore;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,26 +14,19 @@ namespace AIaaS.WebAPI.Controllers
     [ApiController]
     public class PredictController : ControllerBase
     {
-        private readonly IPredictionService _predictionService;
+        private readonly IMediator _mediator;
 
-        public PredictController(IPredictionService predictionService)
+        public PredictController(IMediator mediator)
         {
-            _predictionService = predictionService;
+            _mediator = mediator;
         }
 
         [HttpGet("getPredictionInputSample/{endpointId}")]
-        public async Task<IActionResult> GetPredictionInputSample([FromServices] IPredictionBuilderDirector builderDirector, [FromRoute] int endpointId)
+        public async Task<ActionResult<object?>> GetPredictionInputSample([FromRoute] int endpointId)
         {
-            var parameter = new PredictionParameter().SetEnpointId(endpointId);
-            var result = await builderDirector.BuildInputSampleParameter(parameter);
+            var result = await _mediator.Send(new GetPredictionInputSampleRequest(endpointId));
 
-            if (!result.IsSuccess)
-            {
-                return BadRequest(result.Errors.FirstOrDefault());
-            }
-
-            var runtimeTypeInput = ClassFactory.CreateType(parameter.FeatureColumns);
-            return Ok(Activator.CreateInstance(runtimeTypeInput));
+            return result.ToActionResult(this);
         }
 
         [AllowAnonymous]
@@ -46,37 +40,15 @@ namespace AIaaS.WebAPI.Controllers
                 return Unauthorized("Requires authentication");
             }
 
-            using var stream = new StreamReader(HttpContext.Request.Body);
-            Result<object> serviceResult = await _predictionService.Predict(endpointId, stream);
-
-            return serviceResult.ToActionResult(this);
-            //switch (serviceResult.Status)
-            //{
-            //    case ResultStatus.Ok:
-            //        return Ok(serviceResult.Value);
-            //    case ResultStatus.Error:
-            //        return BadRequest(serviceResult.Errors.FirstOrDefault());
-            //    case ResultStatus.Forbidden:
-            //        return Forbid();
-            //    case ResultStatus.Unauthorized:
-            //        return Unauthorized("Requires authentication");
-            //    case ResultStatus.Invalid:
-            //        return BadRequest(serviceResult.Errors.FirstOrDefault());
-            //    case ResultStatus.NotFound:
-            //        return NotFound();
-            //    default: return BadRequest(serviceResult.Errors.FirstOrDefault());
-            //}
+            Result<object> result = await _mediator.Send(new GetPredictionRequest(endpointId, HttpContext.Request.Body));
+            return result.ToActionResult(this);
         }
 
         [HttpPost("predictInputSample/{endpointId}")]
         public async Task<ActionResult<object>> PredictInputSample([FromRoute] int endpointId)
         {
-            using var stream = new StreamReader(HttpContext.Request.Body);
-            Result<object> serviceResult = await _predictionService.Predict(endpointId, stream, onlyPredictionProperties: true);
-
-            return serviceResult.ToActionResult(this);
+            var result = await _mediator.Send(new GetPredictionRequest(endpointId, HttpContext.Request.Body, true));
+            return result.ToActionResult(this);
         }
     }
-
-  
 }

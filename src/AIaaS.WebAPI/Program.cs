@@ -1,6 +1,5 @@
 using AIaaS.Infrastructure.Data;
 using AIaaS.WebAPI.Infrastructure;
-using AIaaS.WebAPI.Services;
 using Amazon.CloudWatchLogs;
 using Amazon.Runtime;
 using CleanArchitecture.Application.Common.Interfaces;
@@ -56,7 +55,6 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 });
 
 builder.Services.AddScoped<ICustomAuthService, CustomAuthService>();
-builder.Services.AddSingleton<IMyCustomService, MyCustomService>();
 
 builder.Services.AddHttpContextAccessor();
 
@@ -80,7 +78,7 @@ builder.Services.AddSingleton<IJwtValidationService>(provider =>
     var audience = configuration["AUTH0_AUDIENCE"];
     //var secret = configuration["JWT_SECRET"];
     var jwksEndpoint = configuration["AUTH0_JWKS"];
-    return new JwtValidationService(issuer, audience, jwksEndpoint);
+    return new JwtValidationService(issuer, audience, jwksEndpoint, provider.GetService<ILogger<IJwtValidationService>>());
 });
 
 builder.Services.AddCors(options =>

@@ -1,9 +1,10 @@
 ﻿using AIaaS.Domain.Entities;
 using AIaaS.Domain.Entities.enums;
 using Ardalis.Result;
+using Azure.Core;
 using CleanArchitecture.Application.Common.Interfaces;
 
-namespace AIaaS.WebAPI.Services
+namespace AIaaS.WebAPI.Infrastructure
 {
     public interface ICustomAuthService
     {
@@ -13,12 +14,12 @@ namespace AIaaS.WebAPI.Services
     public class CustomAuthService : ICustomAuthService
     {
         private readonly IApplicationDbContext _dbContext;
-        private readonly IMyCustomService _myCustomService;
+        private readonly IJwtValidationService _jwtValidationService;
 
-        public CustomAuthService(IApplicationDbContext dbContext, IMyCustomService myCustomService)
+        public CustomAuthService(IApplicationDbContext dbContext, IJwtValidationService jwtValidationService)
         {
             _dbContext = dbContext;
-            _myCustomService = myCustomService;
+            _jwtValidationService = jwtValidationService;
         }
 
         public async Task<Result<bool>> IsAuthenticatedAsync(HttpRequest request)
@@ -55,24 +56,33 @@ namespace AIaaS.WebAPI.Services
                 return Result.Success(true);
             }
 
-            var bearerHeader = request.Headers.FirstOrDefault(x => x.Key.Equals("Bearer", StringComparison.InvariantCultureIgnoreCase));
-
-            if (string.IsNullOrEmpty(bearerHeader.Value))
+            if (!request.Headers.TryGetValue("Authorization", out var authHeaderValues))
             {
                 return Result.Unauthorized();
             }
 
+            var authHeaderValue = authHeaderValues.FirstOrDefault();
+            if (string.IsNullOrEmpty(authHeaderValue) || !authHeaderValue.StartsWith("Bearer "))
+            {
+                return Result.Error("No bearer token provided");
+            }
+
+            var token = authHeaderValue.Substring("Bearer ".Length);
+
             if (endpoint.AuthenticationType == AuthenticationType.TokenBased &&
-                !bearerHeader.Value.Equals(endpoint.ApiKey))
+                !token.Equals(endpoint.ApiKey))
             {
                 return Result.Unauthorized();
             }
 
             if (endpoint.AuthenticationType == AuthenticationType.JWT)
             {
-                var isAuthenticated = await _myCustomService.IsAuthenticated(bearerHeader.Value);
+                var tokenValidationResult = await _jwtValidationService.ValidateToken(token);
 
-                return isAuthenticated ? Result.Success(true) : Result.Unauthorized();
+                if (!tokenValidationResult.IsSuccess || !tokenValidationResult.Value.IsInRole("AIaaS-consumer"))
+                    return Result.Unauthorized();
+
+                Result.Success(true);
             }
 
             return Result.Success(true);

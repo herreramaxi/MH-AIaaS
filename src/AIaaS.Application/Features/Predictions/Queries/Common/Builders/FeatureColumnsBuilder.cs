@@ -4,7 +4,7 @@ using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.ExtensionMethods;
 using Ardalis.Result;
 
-namespace AIaaS.WebAPI.Services.PredictionService.Builders
+namespace AIaaS.Application.Features.Predictions.Queries.Common.Builders
 {
     [PredictServiceParameterBuilder(PredictServiceBuilderType.FeatureColumns, 7)]
     public class FeatureColumnsBuilder : PredictServiceParameterBuilderAbstract
@@ -15,7 +15,7 @@ namespace AIaaS.WebAPI.Services.PredictionService.Builders
             var inputSchema = parameter.InputSchema;
             var featureColumns = inputSchema
                 .Where(x => parameter.SelectedColumns.Contains(x.Name, StringComparer.InvariantCultureIgnoreCase))
-                .Where(x => !x.Name.Equals(label, StringComparison.InvariantCultureIgnoreCase))                
+                .Where(x => !x.Name.Equals(label, StringComparison.InvariantCultureIgnoreCase))
                 .Select(x => (x.Name, x.Type.ToRawType()));
 
             if (featureColumns is null || !featureColumns.Any())

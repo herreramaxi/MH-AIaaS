@@ -5,7 +5,7 @@ using AIaaS.WebAPI.Interfaces;
 using Ardalis.Result;
 using System.Reflection;
 
-namespace AIaaS.WebAPI.Services.PredictionService.Builders
+namespace AIaaS.Application.Features.Predictions.Queries.Common.Builders
 {
     public abstract class PredictServiceParameterBuilderAbstract : IPredictServiceParameterBuilder
     {
@@ -14,10 +14,10 @@ namespace AIaaS.WebAPI.Services.PredictionService.Builders
 
         public PredictServiceParameterBuilderAbstract()
         {
-            var builderCustomAttribute = this.GetType().GetCustomAttribute<PredictServiceParameterBuilderAttribute>();
+            var builderCustomAttribute = GetType().GetCustomAttribute<PredictServiceParameterBuilderAttribute>();
 
-            this.Order = builderCustomAttribute?.Order??int.MaxValue;
-            this.BuilderType = builderCustomAttribute?.BuilderType ??PredictServiceBuilderType.NA;
+            Order = builderCustomAttribute?.Order ?? int.MaxValue;
+            BuilderType = builderCustomAttribute?.BuilderType ?? PredictServiceBuilderType.NA;
         }
 
         public abstract Task<Result<PredictionParameter>> Build(PredictionParameter parameter);

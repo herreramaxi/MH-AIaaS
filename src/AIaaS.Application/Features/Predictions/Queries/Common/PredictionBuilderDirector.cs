@@ -3,7 +3,7 @@ using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.Interfaces;
 using Ardalis.Result;
 
-namespace AIaaS.WebAPI.Services.PredictionService
+namespace AIaaS.Application.Features.Predictions.Queries.Common
 {
     public class PredictionBuilderDirector : IPredictionBuilderDirector
     {
@@ -16,7 +16,7 @@ namespace AIaaS.WebAPI.Services.PredictionService
 
         public async Task<Result<PredictionParameter>> BuildInputSampleParameter(PredictionParameter parameter)
         {
-            var builders = this.GetBuilders(new PredictServiceBuilderType[] {
+            var builders = GetBuilders(new PredictServiceBuilderType[] {
                 PredictServiceBuilderType .Endpoint,
                 PredictServiceBuilderType.Model,
                 PredictServiceBuilderType.Workflow,
@@ -30,7 +30,7 @@ namespace AIaaS.WebAPI.Services.PredictionService
 
         public async Task<Result<PredictionParameter>> BuildPredictionParameter(PredictionParameter parameter)
         {
-            var builders = this.GetBuilders();
+            var builders = GetBuilders();
             var result = await ExecuteBuilders(parameter, builders);
 
             return result;

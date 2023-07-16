@@ -1,15 +1,11 @@
 ﻿using AIaaS.Application.Common.Models;
-using AIaaS.WebAPI.ExtensionMethods;
 using AIaaS.WebAPI.Interfaces;
 using Ardalis.Result;
 using CleanArchitecture.Application.Common.Interfaces;
-using Microsoft.ML;
-using Microsoft.ML.Data;
-using System.Dynamic;
 
-namespace AIaaS.WebAPI.Services.PredictionService
+namespace AIaaS.Application.Services
 {
-    public class PredictionService : IPredictionService
+    public class PredictionService
     {
         private readonly IApplicationDbContext _dbContext;
         private readonly IPredictionBuilderDirector _predictionBuilderDirector;
@@ -20,6 +16,7 @@ namespace AIaaS.WebAPI.Services.PredictionService
             _predictionBuilderDirector = predictionBuilderDirector;
         }
 
+        //Old implementation: array approach
         public async Task<Result<SimplePrediction>> Predict(int endpointId, PredictionInputDto? predictionInputDto)
         {
             throw new NotImplementedException();
@@ -250,88 +247,6 @@ namespace AIaaS.WebAPI.Services.PredictionService
             //    var message = ex.Message;
             //    return Result.Error($"Error when trying to generate prediction: {ex.Message}");
             //}
-        }
-
-        public async Task<Result<object>> Predict(int endpointId, StreamReader streamReader, bool onlyPredictionProperties = false)
-        {
-            try
-            {
-                #region Authentication
-                //TODO: Validate authentication type
-                //var accessToken = Request.Headers[HeaderNames.Authorization];
-
-                //if (!accessToken.ToString().Contains("ZDk0YjUyZDYtZWQxNi00NWQwLTg2ZGUtOGM3NjBhNWM2Njcx"))
-                //    return new StatusCodeResult(401);
-                #endregion
-
-                var predictParameter = new PredictionParameter()
-                    .SetEnpointId(endpointId)
-                    .SetStreamReader(streamReader)
-                    .SetOnlyPredictedProperties(onlyPredictionProperties);
-
-                var result = await _predictionBuilderDirector.BuildPredictionParameter(predictParameter);
-
-                if (!result.IsSuccess)
-                {
-                    return Result<object>.Error(result.Errors.ToArray());
-                }
-
-                var prediction = this.GeneratePrediction(predictParameter);
-
-                if (prediction is null)
-                {
-                    return Result.Error("Error when trying to predict: prediction is null");
-                }
-
-                dynamic dynamicObject = predictParameter.OnlyPredictedProperties ?
-                    prediction :
-                    this.MergeInputParameterWithPrediction(predictParameter, prediction);
-
-                return Result.Success((object)dynamicObject);
-            }
-            catch (Exception ex)
-            {
-                var message = ex.Message;
-                return Result.Error($"Error when trying to generate prediction: {ex.Message}");
-            }
-        }
-
-        private dynamic MergeInputParameterWithPrediction(PredictionParameter predictParameter, object? aPrediction)
-        {
-            dynamic dynamicObject = new ExpandoObject();
-
-            foreach (var prop in predictParameter.RuntimeTypeInput.GetProperties())
-            {
-                //skip if predictedObject already has the property
-                if (predictParameter.RuntimeTypeOutput.GetProperty(prop.Name) is not null)
-                {
-                    continue;
-                }
-
-                var value = prop.GetValue(predictParameter.RuntimeInstancesInput);
-                ((IDictionary<string, object>)dynamicObject)[prop.Name] = value;
-            }
-
-            foreach (var prop in predictParameter.RuntimeTypeOutput.GetProperties())
-            {
-                var value = prop.GetValue(aPrediction);
-                ((IDictionary<string, object>)dynamicObject)[prop.Name] = value;
-            }
-
-            return dynamicObject;
-        }
-
-        private object? GeneratePrediction(PredictionParameter predictParameter)
-        {
-            var dynamicPredictionEngine = predictParameter.MLContext.Model.InvokeGenericMethod(
-                new Type[] { predictParameter.RuntimeTypeInput, predictParameter.RuntimeTypeOutput },
-                "CreatePredictionEngine",
-                new[] { typeof(ITransformer),
-                    typeof(bool), typeof(SchemaDefinition), typeof(SchemaDefinition) },
-                new object[] { predictParameter.TrainedModel, true, null, null });
-
-            var predictedObject = dynamicPredictionEngine?.InvokeMethod("Predict", new[] { predictParameter.RuntimeTypeInput }, new[] { predictParameter.RuntimeInstancesInput });
-            return predictedObject;
         }
 
         public class SimplePrediction

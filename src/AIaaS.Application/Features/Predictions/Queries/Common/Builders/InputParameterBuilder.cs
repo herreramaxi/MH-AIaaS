@@ -4,7 +4,7 @@ using AIaaS.Domain.Entities.enums;
 using Ardalis.Result;
 using System.Text.Json;
 
-namespace AIaaS.WebAPI.Services.PredictionService.Builders
+namespace AIaaS.Application.Features.Predictions.Queries.Common.Builders
 {
     [PredictServiceParameterBuilder(PredictServiceBuilderType.InputParameter, 1)]
     public class InputParameterBuilder : PredictServiceParameterBuilderAbstract
@@ -18,7 +18,7 @@ namespace AIaaS.WebAPI.Services.PredictionService.Builders
                 return Result.Error("Input prediction empty");
             }
 
-            if (!this.IsJson(inputAsString))
+            if (!IsJson(inputAsString))
             {
                 return Result.Error("Input prediction does not have a valid JSON format");
             }

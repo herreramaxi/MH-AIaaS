@@ -5,7 +5,7 @@ using AIaaS.WebAPI.ExtensionMethods;
 using Ardalis.Result;
 using System.Text.Json;
 
-namespace AIaaS.WebAPI.Services.PredictionService.Builders
+namespace AIaaS.Application.Features.Predictions.Queries.Common.Builders
 {
     [PredictServiceParameterBuilder(PredictServiceBuilderType.InputParameterDeserealizer, 6)]
     public class InputParameterDeserealizerBuilder : PredictServiceParameterBuilderAbstract

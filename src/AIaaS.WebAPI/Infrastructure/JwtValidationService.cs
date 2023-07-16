@@ -1,13 +1,13 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using Ardalis.Result;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 
-namespace AIaaS.WebAPI.Services
+namespace AIaaS.WebAPI.Infrastructure
 {
     public interface IJwtValidationService
     {
-        Task<ClaimsPrincipal> ValidateToken(string token);
+        Task<Result<ClaimsPrincipal>> ValidateToken(string token);
     }
 
     public class JwtValidationService : IJwtValidationService
@@ -15,16 +15,18 @@ namespace AIaaS.WebAPI.Services
         private readonly string _issuer;
         private readonly string _audience;
         private string _jwksEndpoint;
+        private readonly ILogger<IJwtValidationService> _logger;
         private readonly string _secret;
 
-        public JwtValidationService(string issuer, string audience, string jwksEndpoint)
+        public JwtValidationService(string issuer, string audience, string jwksEndpoint, ILogger<IJwtValidationService> logger)
         {
             _issuer = issuer;
             _audience = audience;
             _jwksEndpoint = jwksEndpoint;
+            _logger = logger;
         }
 
-        public async  Task<ClaimsPrincipal> ValidateToken(string token)
+        public async Task<Result<ClaimsPrincipal>> ValidateToken(string token)
         {
             var httpClient = new HttpClient();
             //TODO: improve this, add inmemory cache
@@ -45,15 +47,15 @@ namespace AIaaS.WebAPI.Services
 
             try
             {
-                // Validate the token
                 var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
-                return principal;
+                return Result.Success(principal);
             }
             catch (Exception ex)
             {
-                // Token validation failed
-                // Handle or log the exception
-                throw new Exception("Token validation failed.", ex);
+                var errorMessage = $"Token validation failed: {ex.Message}";
+                _logger.LogError(ex, errorMessage);
+
+                return Result.Error(errorMessage);
             }
         }
     }

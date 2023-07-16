@@ -1,9 +1,10 @@
 ﻿using AIaaS.Domain.Common;
 using AIaaS.Domain.Entities.enums;
+using AIaaS.Domain.Interfaces;
 
 namespace AIaaS.Domain.Entities
 {
-    public class MLEndpoint : AuditableEntity
+    public class MLEndpoint : AuditableEntity, IAggregateRoot
     {
         public string Name { get; set; }
         public string? Description { get; set; }
@@ -11,11 +12,6 @@ namespace AIaaS.Domain.Entities
         public MLModel? MLModel { get; set; }
         public int MLModelId { get; set; }
         public bool IsEnabled { get; set; }
-        public string? ApiKey { get; set; }
-
-        public static implicit operator int(MLEndpoint? v)
-        {
-            throw new NotImplementedException();
-        }
+        public string? ApiKey { get; set; }       
     }
 }

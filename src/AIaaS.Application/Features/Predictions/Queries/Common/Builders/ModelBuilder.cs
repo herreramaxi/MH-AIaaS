@@ -4,7 +4,7 @@ using AIaaS.Domain.Entities.enums;
 using Ardalis.Result;
 using Microsoft.ML;
 
-namespace AIaaS.WebAPI.Services.PredictionService.Builders
+namespace AIaaS.Application.Features.Predictions.Queries.Common.Builders
 {
     [PredictServiceParameterBuilder(PredictServiceBuilderType.Model, 3)]
     public class ModelBuilder : PredictServiceParameterBuilderAbstract
