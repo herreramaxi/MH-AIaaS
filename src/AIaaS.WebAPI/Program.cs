@@ -51,7 +51,7 @@ builder.Host.UseSerilog((hostContext, services, configuration) =>
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.AddServerHeader = false;
-    serverOptions.Limits.MaxRequestBodySize = 60 * 1024 * 1024;
+    serverOptions.Limits.MaxRequestBodySize = 250 * 1024 * 1024;
 });
 
 builder.Services.AddScoped<ICustomAuthService, CustomAuthService>();
