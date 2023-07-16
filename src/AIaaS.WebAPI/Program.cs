@@ -5,6 +5,7 @@ using Amazon.Runtime;
 using CleanArchitecture.Application.Common.Interfaces;
 using dotenv.net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -12,6 +13,8 @@ using Serilog;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.AwsCloudWatch;
 using System.Reflection;
+
+const int MAX_BODY_SIZE = 250 * 1024 * 1024;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,8 +54,16 @@ builder.Host.UseSerilog((hostContext, services, configuration) =>
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.AddServerHeader = false;
-    serverOptions.Limits.MaxRequestBodySize = 250 * 1024 * 1024;
+    serverOptions.Limits.MaxRequestBodySize = MAX_BODY_SIZE;    
 });
+
+builder.Services.Configure<FormOptions>(x =>
+{
+    //x.ValueLengthLimit = int.MaxValue;
+    x.MultipartBodyLengthLimit = MAX_BODY_SIZE; // if don't set default value is: 128 MB
+    //x.MultipartHeadersLengthLimit = int.MaxValue;
+});
+
 
 builder.Services.AddScoped<ICustomAuthService, CustomAuthService>();
 
