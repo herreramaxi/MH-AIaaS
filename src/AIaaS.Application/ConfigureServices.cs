@@ -1,4 +1,5 @@
-﻿using AIaaS.Application.Common.Models.CustomAttributes;
+﻿using AIaaS.Application.Common.Behaviours;
+using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Features.Predictions.Queries.Common;
 using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.PipelineBehaviours;
@@ -22,6 +23,7 @@ public static class ConfigureServices
             //cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(UnhandledExceptionBehaviour<,>));
             //cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(AuthorizationBehaviour<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(WorkflowRunHistoryPipelineBehavior<,>));
             //cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(PerformanceBehaviour<,>));
         });
 

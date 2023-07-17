@@ -1,6 +1,6 @@
 ﻿using AIaaS.Domain.Common;
+using AIaaS.Domain.Enums;
 using AIaaS.Domain.Interfaces;
-using System.IO;
 
 namespace AIaaS.Domain.Entities
 {
@@ -13,6 +13,9 @@ namespace AIaaS.Domain.Entities
 
         private readonly List<WorkflowDataView> _workflowDataViews = new List<WorkflowDataView>();
         public IReadOnlyCollection<WorkflowDataView> WorkflowDataViews => _workflowDataViews.AsReadOnly();
+
+        private readonly List<WorkflowRunHistory> _workflowRunHistories = new List<WorkflowRunHistory>();
+        public IReadOnlyCollection<WorkflowRunHistory> WorkflowRunHistories => _workflowRunHistories.AsReadOnly();
 
         public void AddOrUpdateMLModelData(MemoryStream stream)
         {
@@ -55,7 +58,21 @@ namespace AIaaS.Domain.Entities
 
         public void UpdateData(string data)
         {
-           this.Data = data;
+            this.Data = data;
+        }
+
+        public WorkflowRunHistory AddWorkflowRunHistory(WorkflowRunStatus status,  DateTime startDate, DateTime? endDate = null)
+        {
+            var workflowRunHistory = new WorkflowRunHistory()
+            {
+                Status = status,
+                StartDate = startDate,
+                EndDate = endDate
+            };
+
+            _workflowRunHistories.Add(workflowRunHistory);
+
+            return workflowRunHistory;
         }
     }
 }

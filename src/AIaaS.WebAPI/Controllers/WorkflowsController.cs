@@ -2,7 +2,7 @@
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Application.Features.Workflows.Commands;
 using AIaaS.Application.Features.Workflows.Queries;
-using Ardalis.Result;
+using AIaaS.Application.Features.Workflows.Queries.GetLatestWorkflowRunHistory;
 using Ardalis.Result.AspNetCore;
 using CleanArchitecture.Application.Common.Interfaces;
 using MediatR;
@@ -103,9 +103,19 @@ namespace AIaaS.WebAPI.Controllers
         {
             var query = new GetPreviewWorkflowQuery(workflowDataviewId);
 
-           var previewResult = await _mediator.Send(query);
+            var previewResult = await _mediator.Send(query);
 
             return previewResult.ToActionResult(this);
+        }
+
+
+        [HttpGet("getLatestWorkflowRunHistory/{workflowId:int}")]
+        public async Task<IActionResult> GetLatestWorkflowRunHistory(int workflowId)
+        {
+            var query = new GetLatestWorkflowRunHistoryQuery(workflowId);
+            var workflowRunHistory = await _mediator.Send(query);
+
+            return Ok(workflowRunHistory);
         }
     }
 }
