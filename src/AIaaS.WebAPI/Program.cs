@@ -1,3 +1,6 @@
+using AIaaS.Application;
+using AIaaS.Application.SignalR;
+using AIaaS.Domain.Entities;
 using AIaaS.Infrastructure.Data;
 using AIaaS.WebAPI.Infrastructure;
 using Amazon.CloudWatchLogs;
@@ -7,6 +10,7 @@ using dotenv.net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -54,7 +58,7 @@ builder.Host.UseSerilog((hostContext, services, configuration) =>
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.AddServerHeader = false;
-    serverOptions.Limits.MaxRequestBodySize = MAX_BODY_SIZE;    
+    serverOptions.Limits.MaxRequestBodySize = MAX_BODY_SIZE;
 });
 
 builder.Services.Configure<FormOptions>(x =>
@@ -71,6 +75,11 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+});
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<EfContext>();
@@ -101,6 +110,8 @@ builder.Services.AddCors(options =>
             .SetPreflightMaxAge(TimeSpan.FromSeconds(86400));
     });
 });
+
+builder.Services.AddSignalR();
 
 builder.Services.AddControllers();
 
@@ -180,6 +191,14 @@ await app.InitialiseDatabaseAsync();
 
 app.MapHealthChecks();
 
+app.MapPost("testsr", async (string message, IHubContext<SignalRWorkflowRunHistoryHub, IWorkflowCLient> context) =>
+{
+    await context.Clients.All.ReceiveMessage(message);
+    return Results.NoContent();
+});
+
+app.MapHub<SignalRWorkflowRunHistoryHub>("/workflow-run-history-hub");
+
 var requiredVars =
     new string[] {
           "PORT_WEBAPI",
@@ -208,12 +227,6 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
-
-app.MapGet("/test", () =>
-{
-    return "hello world";
-});
-
 
 app.Urls.Add($"http://+:{app.Configuration.GetValue<string>("PORT_WEBAPI")}");
 
