@@ -17,6 +17,8 @@ using Serilog;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.AwsCloudWatch;
 using System.Reflection;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 const int MAX_BODY_SIZE = 250 * 1024 * 1024;
 
@@ -114,6 +116,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddSignalR();
 
 builder.Services.AddControllers();
+
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>

@@ -3,6 +3,7 @@ using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.WebAPI.Interfaces;
 using Microsoft.ML;
+using System.Diagnostics;
 
 namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 {
@@ -46,6 +47,8 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
         {
             if (context.EstimatorChain is null) return;
 
+            var sw = Stopwatch.StartNew();
+
             var transformer = context.EstimatorChain.Fit(context.DataView);
             var dataview = transformer.Transform(context.DataView);
             using var stream = new MemoryStream();
@@ -56,6 +59,9 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 
             root.Data.Parameters = new Dictionary<string, object>();
             root.Data.Parameters.Add("WorkflowDataViewId", workflowDataView?.Id);
+
+            sw.Stop();
+            Console.WriteLine($"Node {root.Data?.Name}, ellapsed: {sw.ElapsedMilliseconds}ms");
         }
     }
 }

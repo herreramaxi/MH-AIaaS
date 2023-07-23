@@ -7,6 +7,7 @@ using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
+using System.Diagnostics;
 
 namespace AIaaS.Application.Features.Workflows.Commands
 {

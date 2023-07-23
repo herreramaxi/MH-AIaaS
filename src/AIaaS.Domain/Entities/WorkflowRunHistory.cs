@@ -14,7 +14,10 @@ namespace AIaaS.Domain.Entities
         public WorkflowRunStatus Status { get; set; }
         public string? Description { get; set; }
         public string? StatusDetail { get; set; }
+
         [NotMapped]
         public TimeSpan? Duration => EndDate != null ? EndDate - StartDate : null;
+        [NotMapped]
+        public string? WorkflowName { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using AIaaS.WebAPI.ExtensionMethods;
 using AIaaS.WebAPI.Interfaces;
 using Ardalis.Result;
 using CleanArchitecture.Application.Common.Interfaces;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace AIaaS.Application.Features.Workflows.Commands.Common
@@ -31,7 +32,10 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common
 
             foreach (var node in nodes)
             {
+                var sw = Stopwatch.StartNew();
                 await ProcessNode(node, context, cancellationToken);
+                sw.Stop();
+                Console.WriteLine($"Node {node.Data?.Name}, total ellapsed: {sw.ElapsedMilliseconds}ms");
             }
 
             var workflowSerialized = JsonSerializer.Serialize(workflowGraphDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });

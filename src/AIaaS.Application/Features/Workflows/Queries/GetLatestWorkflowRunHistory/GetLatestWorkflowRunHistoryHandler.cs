@@ -1,11 +1,12 @@
 ﻿using AIaaS.Application.Common.Models;
-using AIaaS.Application.Specifications.Workflows;
+using AIaaS.Application.Features.Workflows.Queries.GetLatestWorkflowRunHistory;
+using AIaaS.Application.Specifications.WorkflowRunHistories;
 using AIaaS.Domain.Entities;
 using AIaaS.Domain.Interfaces;
 using AutoMapper;
 using MediatR;
 
-namespace AIaaS.Application.Features.Workflows.Queries.GetLatestWorkflowRunHistory
+namespace AIaaS.Application.Features.Workflows.Queries
 {
     public class GetLatestWorkflowRunHistoryHandler : IRequestHandler<GetLatestWorkflowRunHistoryQuery, WorkflowRunHistoryDto?>
     {
@@ -20,7 +21,7 @@ namespace AIaaS.Application.Features.Workflows.Queries.GetLatestWorkflowRunHisto
 
         public async Task<WorkflowRunHistoryDto?> Handle(GetLatestWorkflowRunHistoryQuery request, CancellationToken cancellationToken)
         {
-            var workflowRunHistory = await _repository.FirstOrDefaultAsync(new LatestWorkflowRunHistorySpec(request.WorkflowId),cancellationToken);
+            var workflowRunHistory = await _repository.FirstOrDefaultAsync(new LatestWorkflowRunHistorySpec(request.WorkflowId), cancellationToken);
             var mapped = _mapper.Map<WorkflowRunHistoryDto>(workflowRunHistory);
             return mapped;
         }

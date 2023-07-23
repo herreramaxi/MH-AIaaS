@@ -37,7 +37,7 @@ namespace AIaaS.Application.Common.Behaviours
             {
                 _logger.LogInformation($"Running workflow {request.WorkflowDto.Id}-{request.WorkflowDto.Name}, startDate: {startDate}");
                 await _workflowRepository.UpdateAsync(workflow, cancellationToken);
-                await _mediator.Send(new NotifyWorkflowRunHistoryChangeRequest(workflowRunHistory));
+                await _mediator.Publish(new WorkflowRunHistoryChangeNotification(workflowRunHistory));
             }
 
             TResponse response = await next();
@@ -52,7 +52,7 @@ namespace AIaaS.Application.Common.Behaviours
             workflowRunHistory.StatusDetail = !response.IsSuccess ? response.Errors?.FirstOrDefault() : null;
 
             await _workflowRepository.UpdateAsync(workflow, cancellationToken);
-            await _mediator.Send(new NotifyWorkflowRunHistoryChangeRequest(workflowRunHistory));
+            await _mediator.Publish(new WorkflowRunHistoryChangeNotification(workflowRunHistory));
 
             _logger.LogInformation($"Finishing workflow {request.WorkflowDto.Id}-{request.WorkflowDto.Name}, startDate: {startDate}, endDate: {workflowRunHistory.EndDate}, duration: {workflowRunHistory.Duration?.TotalSeconds}s ({workflowRunHistory.Duration?.TotalMilliseconds}ms)");
 

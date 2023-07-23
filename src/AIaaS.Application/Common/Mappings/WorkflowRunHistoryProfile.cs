@@ -10,9 +10,7 @@ namespace AIaaS.Application.Common.Mappings
         {
             CreateMap<WorkflowRunHistory, WorkflowRunHistoryDto>()
                 .ForMember(x => x.StatusHumanized, opt => opt.MapFrom(y => y.Status.ToString()))
-                .ForMember(x => x.Milliseconds, opt => opt.MapFrom(y => y.Duration != null ? (int?)y.Duration.Value.Milliseconds : null))
-                .ForMember(x => x.Seconds, opt => opt.MapFrom(y => y.Duration != null ? (int?)y.Duration.Value.Seconds : null))
-                .ForMember(x => x.Minutes, opt => opt.MapFrom(y => y.Duration != null ? (int?)y.Duration.Value.Minutes : null));
+                .ForMember(x => x.Milliseconds, opt => opt.MapFrom(y => y.Duration != null ? (int?)y.Duration.Value.TotalMilliseconds : null));
         }
     }
 }
