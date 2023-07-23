@@ -25,7 +25,7 @@ namespace AIaaS.Application.Features.Predictions.Queries.PredictInputSample
             try
             {
                 using var stream = new StreamReader(request.RequestBodyStream);
-                var predictParameter = new PredictionParameter(request.EndpointId, stream, request.OnlyPredictionProperties);
+                var predictParameter = new PredictionParameter(request.EndpointId, stream, request.OnlyPredictionProperties, request.SkipDisableEndpointValidation);
                 var result = await _predictionBuilderDirector.BuildPredictionParameter(predictParameter);
 
                 if (!result.IsSuccess)

@@ -21,11 +21,18 @@ namespace AIaaS.WebAPI.Controllers
             _mediator = mediator;
         }
 
-        [HttpGet("getPredictionInputSample/{endpointId}")]
+        [HttpGet("ui/getInputSample/{endpointId}")]
         public async Task<ActionResult<object?>> GetPredictionInputSample([FromRoute] int endpointId)
         {
             var result = await _mediator.Send(new GetPredictionInputSampleRequest(endpointId));
 
+            return result.ToActionResult(this);
+        }
+
+        [HttpPost("ui/getPrediction/{endpointId}")]
+        public async Task<ActionResult<object>> PredictInputSample([FromRoute] int endpointId)
+        {
+            var result = await _mediator.Send(new GetPredictionRequest(endpointId, HttpContext.Request.Body, true, true));
             return result.ToActionResult(this);
         }
 
@@ -41,13 +48,6 @@ namespace AIaaS.WebAPI.Controllers
             }
 
             Result<object> result = await _mediator.Send(new GetPredictionRequest(endpointId, HttpContext.Request.Body));
-            return result.ToActionResult(this);
-        }
-
-        [HttpPost("predictInputSample/{endpointId}")]
-        public async Task<ActionResult<object>> PredictInputSample([FromRoute] int endpointId)
-        {
-            var result = await _mediator.Send(new GetPredictionRequest(endpointId, HttpContext.Request.Body, true));
             return result.ToActionResult(this);
         }
     }

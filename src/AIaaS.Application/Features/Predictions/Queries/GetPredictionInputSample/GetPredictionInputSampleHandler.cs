@@ -15,7 +15,7 @@ namespace AIaaS.Application.Features.Predictions.Queries.GetPredictionInputSampl
         }
         public async Task<Result<object?>> Handle(GetPredictionInputSampleRequest request, CancellationToken cancellationToken)
         {
-            var parameter = new PredictionParameter(request.EndpointId);
+            var parameter = new PredictionParameter(request);
             var result = await _predictionBuilderDirector.BuildInputSampleParameter(parameter);
 
             if (!result.IsSuccess)

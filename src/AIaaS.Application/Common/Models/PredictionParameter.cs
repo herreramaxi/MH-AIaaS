@@ -1,4 +1,5 @@
-﻿using AIaaS.Domain.Entities;
+﻿using AIaaS.Application.Features.Predictions.Queries.GetPredictionInputSample;
+using AIaaS.Domain.Entities;
 using Microsoft.ML;
 
 namespace AIaaS.Application.Common.Models
@@ -20,19 +21,22 @@ namespace AIaaS.Application.Common.Models
         public Type RuntimeTypeOutput { get; set; }
         public object RuntimeInstancesInput { get; set; }
         public IEnumerable<(string Name, Type RawType)> FeatureColumns { get; set; }
-        public IList<string> SelectedColumns { get; internal set; }
-        public bool OnlyPredictedProperties { get; private set; }
+        public IList<string> SelectedColumns { get; set; }
+        public bool OnlyPredictedProperties { get; set; }
+        public bool SkipDisableEndpointValidation { get; }
 
-        public PredictionParameter(int endpointId)
-        {
-            this.EndpointId = endpointId;
-        }
-
-        public PredictionParameter(int endpointId, StreamReader streamReader, bool onlyPredictedProperties = false)
+        public PredictionParameter(int endpointId, StreamReader streamReader, bool onlyPredictedProperties = false, bool skipDisableEndpointValidation = false)
         {
             this.EndpointId = endpointId;
             this.StreamReader = streamReader;
             this.OnlyPredictedProperties = onlyPredictedProperties;
-        }       
+            this.SkipDisableEndpointValidation = skipDisableEndpointValidation;
+        }
+
+        public PredictionParameter(GetPredictionInputSampleRequest request)
+        {
+            this.EndpointId = request.EndpointId;
+            this.SkipDisableEndpointValidation = true;
+        }
     }
 }

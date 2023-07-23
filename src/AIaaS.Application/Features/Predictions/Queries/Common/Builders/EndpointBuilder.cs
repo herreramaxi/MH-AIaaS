@@ -27,7 +27,7 @@ namespace AIaaS.Application.Features.Predictions.Queries.Common.Builders
                 return Result.NotFound("Endpoint not found");
             }
 
-            if (!endpoint.IsEnabled)
+            if (!parameter.SkipDisableEndpointValidation && !endpoint.IsEnabled)
             {
                 return Result.Error("Endpoint is disabled");
             }

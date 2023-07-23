@@ -17,7 +17,7 @@ namespace AIaaS.Application.Features.Predictions.Queries.Common
         public async Task<Result<PredictionParameter>> BuildInputSampleParameter(PredictionParameter parameter)
         {
             var builders = GetBuilders(new PredictServiceBuilderType[] {
-                PredictServiceBuilderType .Endpoint,
+                PredictServiceBuilderType.Endpoint,
                 PredictServiceBuilderType.Model,
                 PredictServiceBuilderType.Workflow,
                 PredictServiceBuilderType.Runtime,
