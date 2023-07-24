@@ -16,9 +16,11 @@ namespace AIaaS.WebAPI.Controllers
         {
             _mediator = mediator;
         }
-        public async Task<IActionResult> Get()
+
+        [HttpGet("{id?}")]
+        public async Task<IActionResult> Get([FromRoute] int? id)
         {
-            var workflowRunHistories = await _mediator.Send(new GetWorkflowJobsRequest());
+            var workflowRunHistories = await _mediator.Send(new GetWorkflowJobsRequest(id));
             return Ok(workflowRunHistories);
         }
     }

@@ -11,12 +11,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Microsoft.ML.AutoML;
 using Microsoft.ML.Data;
+using System.Data;
 using System.Globalization;
 
 namespace AIaaS.Application.Features.Datasets.Queries.GenerateFilePreview
 {
     public class GenerateFileAnalysisRequestHandler : IRequestHandler<GenerateFileAnalysisRequest, Result<FileAnalysisDto>>
     {
+        private const int MAX_ROWS = 500;
         private readonly ILogger<GenerateFileAnalysisRequestHandler> _logger;
 
         public GenerateFileAnalysisRequestHandler(ILogger<GenerateFileAnalysisRequestHandler> logger)
@@ -66,9 +68,9 @@ namespace AIaaS.Application.Features.Datasets.Queries.GenerateFilePreview
 
                 TextLoader loader = mlContext.Data.CreateTextLoader(columnInference.TextLoaderOptions);
                 IDataView data = loader.Load(filePath);
-
-                var MaxRows = 100;
-                var preview = data.Preview(maxRows: MaxRows);
+                fileAnalysis.TotalColumns = data.Schema.Count;
+                fileAnalysis.TotalRows = (int?)data.GetRowCount();           
+                var preview = data.Preview(maxRows: MAX_ROWS);
 
                 var records = new List<string[]>();
 
@@ -85,9 +87,10 @@ namespace AIaaS.Application.Features.Datasets.Queries.GenerateFilePreview
 
                     records.Add(record);
                 }
-
-                fileAnalysis.Data = records.ToArray();
+                                
+                fileAnalysis.Rows = records.ToArray();
                 fileAnalysis.Delimiter = fileAnalysis.Delimiter.Replace("\t", "\\t");
+                fileAnalysis.PreviewRows = records.Count;
 
                 return Result.Success(fileAnalysis);
             }

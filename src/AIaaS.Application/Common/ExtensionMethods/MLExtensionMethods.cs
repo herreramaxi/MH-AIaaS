@@ -29,7 +29,7 @@ namespace AIaaS.WebAPI.ExtensionMethods
             var dataview = mlContext.Data.LoadFromBinary(mss);
             var header = dataview.Schema.Select(x => x.Name);
             var totalColumns = dataview.Schema.Count;
-            var totalRows = (int)dataview.GetRowCount();
+            var totalRows = (int?)dataview.GetRowCount()??100;
             var preview = dataview.Preview(maxRows: totalRows);
             var records = new List<string[]>();
 

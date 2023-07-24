@@ -19,7 +19,7 @@ namespace AIaaS.Application.Features.WorkflowJobs.Queries.GetWorkflowJobs
         }
         public async Task<IList<WorkflowRunHistoryDto>> Handle(GetWorkflowJobsRequest request, CancellationToken cancellationToken)
         {
-            var workflowRuns = await _repository.ListAsync(new GetAllWorkflowRunHistoryWithWorkflowNameSpec());
+            var workflowRuns = await _repository.ListAsync(new GetAllWorkflowRunHistoryWithWorkflowNameSpec(request.WorkflowId));
             var dtos = _mapper.Map<IList<WorkflowRunHistoryDto>>(workflowRuns);
             return dtos;
         }
