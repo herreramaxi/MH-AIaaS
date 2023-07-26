@@ -1,5 +1,6 @@
 ﻿using AIaaS.Domain.Interfaces;
 using AIaaS.Infrastructure;
+using AIaaS.Infrastructure.AWS;
 using AIaaS.Infrastructure.Data;
 using CleanArchitecture.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +25,7 @@ public static class ConfigureServices
         services.AddScoped<ApplicationDbContextInitialiser>();
         services.AddScoped(typeof(IReadRepository<>), typeof(EfRepository<>));
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
-
+        services.AddScoped<IS3Service, S3Service>();
         //services
         //    .AddDefaultIdentity<ApplicationUser>()
         //    .AddRoles<IdentityRole>()

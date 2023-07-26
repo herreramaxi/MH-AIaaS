@@ -60,7 +60,8 @@ jobs:
               export DATABASE_CONNECTIONSTRING=\"$DATABASE_CONNECTIONSTRING\"
               export AWS_LOG_GROUP_NAME=\"$AWS_LOG_GROUP_NAME\"
               export AWS_ACCESS_KEY_ID=\"$AWS_ACCESS_KEY_ID\"
-              export AWS_SECRET_ACCESS_KEY=\"$AWS_SECRET_ACCESS_KEY\"              
+              export AWS_SECRET_ACCESS_KEY=\"$AWS_SECRET_ACCESS_KEY\"
+              export AWS_BUCKET_NAME=\"$AWS_BUCKET_NAME\"
               rm -rf MH-AIaaS
               git clone https://github.com/herreramaxi/MH-AIaaS.git
               source MH-AIaaS/deploy.sh"

@@ -1,13 +1,13 @@
-using AIaaS.Application;
 using AIaaS.Application.SignalR;
-using AIaaS.Domain.Entities;
 using AIaaS.Infrastructure.Data;
 using AIaaS.WebAPI.Infrastructure;
 using Amazon.CloudWatchLogs;
+using Amazon.Extensions.NETCore.Setup;
 using Amazon.Runtime;
-using CleanArchitecture.Application.Common.Interfaces;
+using Amazon.S3;
 using dotenv.net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.SignalR;
@@ -17,8 +17,6 @@ using Serilog;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.AwsCloudWatch;
 using System.Reflection;
-using System.Text.Json.Serialization;
-using System.Text.Json;
 
 const int MAX_BODY_SIZE = 250 * 1024 * 1024;
 
@@ -70,9 +68,14 @@ builder.Services.Configure<FormOptions>(x =>
     //x.MultipartHeadersLengthLimit = int.MaxValue;
 });
 
+var awsOptions = new AWSOptions
+{
+    Credentials = new BasicAWSCredentials(builder.Configuration.GetValue<string>("AWS_ACCESS_KEY_ID"), builder.Configuration.GetValue<string>("AWS_SECRET_ACCESS_KEY"))
+};
+builder.Services.AddDefaultAWSOptions(awsOptions);
+builder.Services.AddAWSService<IAmazonS3>();
 
 builder.Services.AddScoped<ICustomAuthService, CustomAuthService>();
-
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddApplicationServices();
@@ -214,6 +217,7 @@ var requiredVars =
           "AWS_LOG_GROUP_NAME",
           "AWS_ACCESS_KEY_ID",
           "AWS_SECRET_ACCESS_KEY",
+          "AWS_BUCKET_NAME"
     };
 
 foreach (var key in requiredVars)

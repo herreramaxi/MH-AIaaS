@@ -1,4 +1,5 @@
 ﻿using AIaaS.Domain.Entities.enums;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.ML.Data;
 
 namespace AIaaS.WebAPI.ExtensionMethods
@@ -76,6 +77,11 @@ namespace AIaaS.WebAPI.ExtensionMethods
         public static string ToStringDelimiter(this string delimiter)
         {
             return delimiter.Replace("\\t", "\t");
+        }
+
+        public static string GenerateS3Key(this string fileName)
+        {
+            return $"{Guid.NewGuid()}_{fileName}";
         }
     }
 }

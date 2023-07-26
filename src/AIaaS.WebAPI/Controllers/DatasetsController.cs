@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.ML.Data;
 using System.Data;
+using System.Net.Mime;
 
 namespace AIaaS.WebAPI.Controllers
 {
@@ -65,21 +66,28 @@ namespace AIaaS.WebAPI.Controllers
         }
 
         [HttpGet("GetFilePreview/{datasetId:int}")]
-        public async Task<ActionResult> GetFilePreview(int datasetId)
+        public async Task<ActionResult<DataViewFilePreviewDto>> GetFilePreview(int datasetId)
         {
-            var preview = await _mediator.Send(new GetDataViewFilePreviewRequest(datasetId));
-            if (preview is null) return NotFound();
+            var result = await _mediator.Send(new GetDataViewFilePreviewRequest(datasetId));
 
-            return Ok(preview);
+            return result.ToActionResult(this);
         }
 
         [HttpGet("DownloadOriginalFile/{datasetId:int}")]
-        public async Task<IActionResult> DownloadOriginalFile(int datasetId)
+        public async Task<ActionResult<FileStorageDto>> DownloadOriginalFile(int datasetId)
         {
-            var fileStorageDto = await _mediator.Send(new GetDatasetFileStorageRequest(datasetId));
-            if (fileStorageDto is null) return NotFound();
+            var result = await _mediator.Send(new GetDatasetFileStorageRequest(datasetId));
+            if (!result.IsSuccess)
+            {
+                return result.ToActionResult(this);
+            }
 
-            return File(fileStorageDto.Data, "application/octet-stream", fileStorageDto.FileName);
+            if (result.Value?.FileStream is null)
+            {
+                return BadRequest("Error when trying to download file: FileStream is null");
+            }
+
+            return new FileStreamResult(result.Value.FileStream, "application/octet-stream");
         }
 
         [HttpGet("DownloadBinaryIdvFile/{datasetId:int}")]

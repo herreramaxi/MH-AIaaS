@@ -1,6 +1,8 @@
 ﻿using AIaaS.Application.Common.Models;
 using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
+using AIaaS.Application.Interfaces;
+using AIaaS.Application.Services;
 using AIaaS.Application.Specifications;
 using AIaaS.Application.Specifications.Datasets;
 using AIaaS.Domain.Entities;
@@ -8,6 +10,7 @@ using AIaaS.Domain.Entities.enums;
 using AIaaS.Domain.Interfaces;
 using AIaaS.WebAPI.ExtensionMethods;
 using AIaaS.WebAPI.Interfaces;
+using Ardalis.Result;
 using Microsoft.ML;
 using System.Text.Json;
 
@@ -21,10 +24,12 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
         private IList<string>? _selectedColumns;
         private int? _datasetId;
         private readonly IReadRepository<Dataset> _repository;
+        private readonly IDataViewService _dataViewService;
 
-        public DatasetOperator(IReadRepository<Dataset> repository, IWorkflowService workflowService) : base(workflowService)
+        public DatasetOperator(IReadRepository<Dataset> repository, IWorkflowService workflowService, IDataViewService dataViewService) : base(workflowService)
         {
             _repository = repository;
+            _dataViewService = dataViewService;
         }
 
         public override Task Hydrate(WorkflowContext mlContext, WorkflowNodeDto root)
@@ -64,9 +69,9 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
                 return;
             }
 
-            if (context.Dataset.DataViewFile?.Data is null)
+            if (context.Dataset.DataViewFile is null)
             {
-                root.SetAsFailed("DataViewFile not found or its data is empty");
+                root.SetAsFailed("DataViewFile not found");
                 return;
             }
 
@@ -91,11 +96,14 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
                 .Select(x => x.ColumnName)
                 .ToArray();
 
-            //TODO: check how to manage usings cos if I dispose IDataview cannot be processed
-            var memStream = new MemoryStream(context.Dataset.DataViewFile.Data);
-            var mss = new MultiStreamSourceFile(memStream);
-            var mlContext = new MLContext();
-            context.DataView = mlContext.Data.LoadFromBinary(mss);
+            var dataViewResult = await _dataViewService.GetDataViewAsync(context.Dataset.DataViewFile);
+            if (!dataViewResult.IsSuccess)
+            {
+                root.SetAsFailed(dataViewResult.Errors.FirstOrDefault() ?? "Error wehn trying to downloaddataview file from S3");
+                return;
+            }
+
+            context.DataView = dataViewResult.Value;
             context.InputOutputColumns = context.ColumnSettings.Select(x => new InputOutputColumnPair(x.ColumnName, x.ColumnName)).ToArray();
 
             if (columnsToBeDropped.Any())

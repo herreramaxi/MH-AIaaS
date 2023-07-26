@@ -8,6 +8,6 @@ namespace AIaaS.Domain.Entities
         public Dataset Dataset { get; set; } = null!;
         public string FileName { get; set; }
         public long Size { get; set; }
-        public byte[] Data { get; set; } 
+        public string S3Key{ get; set; }
     }
 }

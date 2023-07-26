@@ -31,6 +31,7 @@ echo "DATABASE_CONNECTIONSTRING=$DATABASE_CONNECTIONSTRING" | tee -a .env
 echo "AWS_LOG_GROUP_NAME=$AWS_LOG_GROUP_NAME" | tee -a .env
 echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" | tee -a .env
 echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" | tee -a .env
+echo "AWS_BUCKET_NAME=$AWS_BUCKET_NAME" | tee -a .env
 
 docker cp .env $CONTAINER_NAME:/app/.env
 rm .env

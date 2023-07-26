@@ -1,6 +1,8 @@
 ﻿using AIaaS.Application.Common.Behaviours;
 using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Features.Predictions.Queries.Common;
+using AIaaS.Application.Interfaces;
+using AIaaS.Application.Services;
 using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.PipelineBehaviours;
 using AIaaS.WebAPI.Services;
@@ -31,7 +33,8 @@ public static class ConfigureServices
         services.AddScoped<IOperatorService, OperatorService>();
         services.AddScoped<IWorkflowService, WorkflowService>();
         services.AddScoped<IPredictionBuilderDirector, PredictionBuilderDirector>();
-
+        services.AddScoped<IDataViewService, DataViewService>();
+        
         var workflowOperatorTypes = typeof(IWebApiMarker).Assembly
             .GetTypes()
             .Where(x => typeof(IWorkflowOperator).IsAssignableFrom(x) && !x.IsAbstract && !x.IsInterface);

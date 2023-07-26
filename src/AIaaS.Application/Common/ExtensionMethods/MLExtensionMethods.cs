@@ -1,4 +1,5 @@
 ﻿using AIaaS.Application.Common.Models;
+using AIaaS.Domain.Entities;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 
@@ -51,6 +52,6 @@ namespace AIaaS.WebAPI.ExtensionMethods
             };
 
             return dataPreview;
-        }
+        }              
     }
 }

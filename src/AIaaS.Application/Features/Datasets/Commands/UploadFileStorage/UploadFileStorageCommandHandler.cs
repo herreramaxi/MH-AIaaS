@@ -14,12 +14,14 @@ namespace AIaaS.Application.Features.Datasets.Commands.UploadDataset
 {
     public class UploadFileStorageCommandHandler : IRequestHandler<UploadFileStorageCommand, Result>
     {
-        private readonly IRepository<Dataset> _repository;
         private readonly ILogger<UploadFileStorageCommandHandler> _logger;
+        private readonly IRepository<Dataset> _repository;
+        private readonly IS3Service _s3Service;
 
-        public UploadFileStorageCommandHandler(IRepository<Dataset> repository, ILogger<UploadFileStorageCommandHandler> logger)
+        public UploadFileStorageCommandHandler(IRepository<Dataset> repository, IS3Service s3Service, ILogger<UploadFileStorageCommandHandler> logger)
         {
             _repository = repository;
+            _s3Service = s3Service;
             _logger = logger;
         }
         public async Task<Result> Handle(UploadFileStorageCommand request, CancellationToken cancellationToken)
@@ -37,21 +39,28 @@ namespace AIaaS.Application.Features.Datasets.Commands.UploadDataset
                 var file = request.UploadFileStorageParameter.File;
                 filePath = await file.SaveTempFile();
                 using var reader = file.OpenReadStream();
-                using var memStream = new MemoryStream();
-                await reader.CopyToAsync(memStream);
 
-                var fileStorage = new FileStorage()
+                dataset.FileStorage = new FileStorage()
                 {
                     FileName = file.FileName,
                     Size = file.Length,
-                    Data = memStream.ToArray()
+                    S3Key = file.FileName.GenerateS3Key()
                 };
 
-                dataset.FileStorage = fileStorage;
+                var uploadedToS3 = await _s3Service.UploadFileAsync(reader, dataset.FileStorage.S3Key);
+                if (!uploadedToS3)
+                {
+                    return Result.Error("Error when trying to upload the file to S3");
+                }
 
-                reader.Seek(0, SeekOrigin.Begin);
+                var createDataViewResult = await CreateDataViewFileAsync(filePath, dataset, file);
 
-                dataset.DataViewFile = CreateDataViewFile(filePath, dataset, file);
+                if (!createDataViewResult.IsSuccess || createDataViewResult.Value is null)
+                {
+                    return Result.Error(createDataViewResult.Errors.FirstOrDefault() ?? "Error when trying to create dataview file");
+                }
+
+                dataset.DataViewFile = createDataViewResult.Value;
 
                 await _repository.UpdateAsync(dataset);
 
@@ -72,40 +81,56 @@ namespace AIaaS.Application.Features.Datasets.Commands.UploadDataset
             }
         }
 
-        private static DataViewFile CreateDataViewFile(string? filePath, Dataset dataset, IFormFile file)
+        private async Task<Result<DataViewFile>> CreateDataViewFileAsync(string? filePath, Dataset dataset, IFormFile file)
         {
-            var mlContext = new MLContext();
-            var columns = dataset.ColumnSettings.Select((x, index) => new TextLoader.Column(x.ColumnName, x.Type.ToDataKind(), index)).ToArray();
-            var separator = dataset.Delimiter.ToCharDelimiter();
-            var options = new TextLoader.Options
+            try
             {
-                AllowQuoting = true,
-                HasHeader = true,
-                MissingRealsAsNaNs = dataset.MissingRealsAsNaNs ?? false,
-                Separators = new[] { separator },
-                Columns = columns
-            };
+                var mlContext = new MLContext();
+                var columns = dataset.ColumnSettings.Select((x, index) => new TextLoader.Column(x.ColumnName, x.Type.ToDataKind(), index)).ToArray();
+                var separator = dataset.Delimiter.ToCharDelimiter();
+                var options = new TextLoader.Options
+                {
+                    AllowQuoting = true,
+                    HasHeader = true,
+                    MissingRealsAsNaNs = dataset.MissingRealsAsNaNs ?? false,
+                    Separators = new[] { separator },
+                    Columns = columns
+                };
 
-            var columnNames = dataset.ColumnSettings.Select(x => x.ColumnName);
-            var labelColumn = columnNames
-                .Where(x => x.Equals("Label", StringComparison.InvariantCultureIgnoreCase))
-              .FirstOrDefault() ?? columnNames.Last();
+                var columnNames = dataset.ColumnSettings.Select(x => x.ColumnName);
+                var labelColumn = columnNames
+                    .Where(x => x.Equals("Label", StringComparison.InvariantCultureIgnoreCase))
+                  .FirstOrDefault() ?? columnNames.Last();
 
 
-            var dataView = mlContext.Data.LoadFromTextFile(filePath, options: options);
-            var fileName = Path.GetFileNameWithoutExtension(file.FileName);
-            var dataViewFileName = $"{fileName}.idv";
-            var stream = new MemoryStream();
-            mlContext.Data.SaveAsBinary(dataView, stream);
+                var dataView = mlContext.Data.LoadFromTextFile(filePath, options: options);
+                var fileName = Path.GetFileNameWithoutExtension(file.FileName);
+                var dataViewFileName = $"{fileName}.idv";
+                var stream = new MemoryStream();
+                mlContext.Data.SaveAsBinary(dataView, stream);
 
-            var dataview = new DataViewFile
+                var dataview = new DataViewFile
+                {
+                    Name = dataViewFileName,
+                    Size = stream.Length,
+                    S3Key = dataViewFileName.GenerateS3Key()
+                };
+
+                var uploadedToS3 = await _s3Service.UploadFileAsync(stream, dataview.S3Key);
+                if (!uploadedToS3)
+                {
+                    return Result.Error("Not able to upload dataview file to S3");
+                }
+
+                return Result.Success(dataview);
+            }
+            catch (Exception exception)
             {
-                Name = dataViewFileName,
-                Size = stream.Length,
-                Data = stream.ToArray()
-            };
+                var errorMessage = "Error when trying to generate dataview file";
+                _logger.LogError(exception, errorMessage);
 
-            return dataview;
+                return Result.Error(errorMessage);
+            }
         }
     }
 }
