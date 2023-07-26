@@ -17,15 +17,26 @@ namespace AIaaS.Infrastructure.AWS
         {
             _s3Client = s3Client;
             _logger = logger;
-            _bucketName = configuration["AWS_BUCKET_NAME"];
+            _bucketName = configuration["AWS_BUCKET_NAME"];            
         }
 
-        public async Task<bool> UploadFileAsync(Stream fileStream, string key)
+        public string GetS3ResourceUrl(string? key)
+        {
+            return !string.IsNullOrEmpty(key) ? $"https://{_bucketName}.s3.eu-west-1.amazonaws.com/{key}" : key;
+        }
+
+        public async Task<bool> UploadFileAsync(Stream fileStream, string key, bool makePublic = false)
         {
             try
             {
                 using var transferUtility = new TransferUtility(_s3Client);
                 await transferUtility.UploadAsync(fileStream, _bucketName, key);
+
+                if (makePublic)
+                {
+                    await _s3Client.MakeObjectPublicAsync(_bucketName, key, true);
+                }
+
                 return true;
             }
             catch (Exception exception)
@@ -61,13 +72,13 @@ namespace AIaaS.Infrastructure.AWS
             try
             {
                 var request = new DeleteObjectRequest
-            {
-                BucketName = _bucketName,
-                Key = key
-            };
+                {
+                    BucketName = _bucketName,
+                    Key = key
+                };
 
-            var response = await _s3Client.DeleteObjectAsync(request);
-            return response.HttpStatusCode == System.Net.HttpStatusCode.NoContent;
+                var response = await _s3Client.DeleteObjectAsync(request);
+                return response.HttpStatusCode == System.Net.HttpStatusCode.NoContent;
             }
             catch (Exception exception)
             {

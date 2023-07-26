@@ -25,26 +25,22 @@ namespace AIaaS.Application.Features.Datasets.Commands.RemoveDataset
                 return Result.NotFound("Dataset not found");
             }
 
-            if (dataset.DataViewFile is null)
+            if (dataset.DataViewFile is not null)
             {
-                return Result.NotFound("DataViewFile not found");
+                var deleted = await _s3Service.DeleteFileAsync(dataset.DataViewFile.S3Key);
+                if (!deleted)
+                {
+                    return Result.Error("There was an error when trying to delete dataview from S3");
+                }
             }
 
-            var deleted = await _s3Service.DeleteFileAsync(dataset.DataViewFile.S3Key);
-            if (!deleted)
+            if (dataset.FileStorage is not null)
             {
-                return Result.Error("There was an error when trying to delete dataview from S3");
-            }
-
-            if (dataset.FileStorage is null)
-            {
-                return Result.NotFound("FileStorage not found");
-            }
-
-            deleted = await _s3Service.DeleteFileAsync(dataset.FileStorage.S3Key);
-            if (!deleted)
-            {
-                return Result.Error("There was an error when trying to delete fileStorage from S3");
+                var deleted = await _s3Service.DeleteFileAsync(dataset.FileStorage.S3Key);
+                if (!deleted)
+                {
+                    return Result.Error("There was an error when trying to delete fileStorage from S3");
+                }
             }
 
             await _repository.DeleteAsync(dataset, cancellationToken);

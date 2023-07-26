@@ -47,7 +47,7 @@ namespace AIaaS.Application.Features.Datasets.Commands.UploadDataset
                     S3Key = file.FileName.GenerateS3Key()
                 };
 
-                var uploadedToS3 = await _s3Service.UploadFileAsync(reader, dataset.FileStorage.S3Key);
+                var uploadedToS3 = await _s3Service.UploadFileAsync(reader, dataset.FileStorage.S3Key, true);
                 if (!uploadedToS3)
                 {
                     return Result.Error("Error when trying to upload the file to S3");
@@ -116,7 +116,7 @@ namespace AIaaS.Application.Features.Datasets.Commands.UploadDataset
                     S3Key = dataViewFileName.GenerateS3Key()
                 };
 
-                var uploadedToS3 = await _s3Service.UploadFileAsync(stream, dataview.S3Key);
+                var uploadedToS3 = await _s3Service.UploadFileAsync(stream, dataview.S3Key, true);
                 if (!uploadedToS3)
                 {
                     return Result.Error("Not able to upload dataview file to S3");
