@@ -10,6 +10,7 @@ namespace AIaaS.Application.Services
 {
     public class DataViewService : IDataViewService
     {
+        private const int TOP_ROWS_PREVIEW = 500;
         private readonly IS3Service _s3Service;
 
         public DataViewService(IS3Service s3Service)
@@ -28,8 +29,8 @@ namespace AIaaS.Application.Services
             var dataview = dataViewResult.Value;
             var header = dataview.Schema.Select(x => x.Name);
             var totalColumns = dataview.Schema.Count;
-            var totalRows = (int?)dataview.GetRowCount() ?? 100;
-            var preview = dataview.Preview(maxRows: totalRows);
+            var totalRows = (int?)dataview.GetRowCount();
+            var preview = dataview.Preview(maxRows: TOP_ROWS_PREVIEW);
             var records = new List<string[]>();
 
             foreach (var row in preview.RowView)
@@ -46,7 +47,8 @@ namespace AIaaS.Application.Services
                 Header = header,
                 Rows = records,
                 TotalRows = totalRows,
-                TotalColumns = totalColumns
+                TotalColumns = totalColumns,
+                TopRows= TOP_ROWS_PREVIEW
             };
 
             return dataPreview;

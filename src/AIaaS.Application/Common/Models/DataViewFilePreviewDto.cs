@@ -6,5 +6,6 @@
         public IEnumerable<string[]> Rows { get; set; }
         public int? TotalRows { get; set; }
         public int? TotalColumns { get;  set; }
+        public int? TopRows { get; set; }
     }
 }
