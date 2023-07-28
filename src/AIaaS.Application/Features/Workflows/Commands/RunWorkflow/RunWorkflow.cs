@@ -21,16 +21,16 @@ namespace AIaaS.Application.Features.Workflows.Commands
         public WorkflowDto WorkflowDto { get; }
     }
 
-    public class RunWorkflowHandler : BaseWorkflowHandler, IRequestHandler<RunWorkflowCommand, Result<WorkflowDto>>
+    public class RunWorkflowHandler : IRequestHandler<RunWorkflowCommand, Result<WorkflowDto>>
     {
         private readonly IWorkflowService _workflowService;
         private readonly IMapper _mapper;
         private readonly ILogger<RunWorkflowHandler> _logger;
 
-        public RunWorkflowHandler(IEnumerable<IWorkflowOperator> workflowOperators,
+        public RunWorkflowHandler(
            IWorkflowService workflowService,
             IMapper mapper,
-            ILogger<RunWorkflowHandler> logger) : base(workflowOperators)
+            ILogger<RunWorkflowHandler> logger)
         {
             _workflowService = workflowService;
             _mapper = mapper;
@@ -55,7 +55,7 @@ namespace AIaaS.Application.Features.Workflows.Commands
                     RunWorkflow = true
                 };
 
-                var result = await Run(request.WorkflowDto, context, cancellationToken);
+                var result = await _workflowService.Run(request.WorkflowDto, context, cancellationToken);
 
                 if (!result.IsSuccess)
                 {

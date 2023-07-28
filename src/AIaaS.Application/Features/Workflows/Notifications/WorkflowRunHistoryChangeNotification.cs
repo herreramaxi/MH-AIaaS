@@ -1,7 +1,7 @@
 ﻿using AIaaS.Domain.Entities;
 using MediatR;
 
-namespace AIaaS.Application.Features.Workflows
+namespace AIaaS.Application.Features.Workflows.Notifications
 {
     public class WorkflowRunHistoryChangeNotification : INotification
     {

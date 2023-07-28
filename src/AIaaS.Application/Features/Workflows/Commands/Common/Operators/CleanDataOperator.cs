@@ -4,6 +4,7 @@ using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.ExtensionMethods;
 using AIaaS.WebAPI.Interfaces;
+using AIaaS.WebAPI.Services;
 using Microsoft.ML;
 using System.Text.Json;
 
@@ -17,7 +18,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
         private string? _cleanMode;
         private IList<string>? _selectedColumns;
 
-        public CleanDataOperator(IWorkflowService workflowService) : base(workflowService)
+        public CleanDataOperator(IOperatorService operatorService) : base(operatorService)
         {
         }
 

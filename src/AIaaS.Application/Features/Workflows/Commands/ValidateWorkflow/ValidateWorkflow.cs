@@ -1,5 +1,4 @@
 ﻿using AIaaS.Application.Common.Models;
-using AIaaS.Application.Features.Workflows.Commands.Common;
 using AIaaS.Application.Specifications.Workflows;
 using AIaaS.Domain.Entities;
 using AIaaS.Domain.Interfaces;
@@ -21,16 +20,18 @@ namespace AIaaS.Application.Features.Workflows.Commands
         public WorkflowDto WorkflowDto { get; }
     }
 
-    public class ValidateWorkflowHandler : BaseWorkflowHandler, IRequestHandler<ValidateWorkflowCommand, Result<WorkflowDto>>
+    public class ValidateWorkflowHandler : IRequestHandler<ValidateWorkflowCommand, Result<WorkflowDto>>
     {
+        private readonly IWorkflowService _workflowService;
         private readonly IReadRepository<Workflow> _readRepository;
         private readonly ILogger<RunWorkflowHandler> _logger;
 
         public ValidateWorkflowHandler(
-            IEnumerable<IWorkflowOperator> workflowOperators,
+            IWorkflowService workflowService,
             IReadRepository<Workflow> readRepository,
-            ILogger<RunWorkflowHandler> logger) : base(workflowOperators)
+            ILogger<RunWorkflowHandler> logger)
         {
+            _workflowService = workflowService;
             _readRepository = readRepository;
             _logger = logger;
         }
@@ -54,7 +55,7 @@ namespace AIaaS.Application.Features.Workflows.Commands
                     RunWorkflow = false
                 };
 
-                var result = await Run(workflowDto, context, cancellationToken);
+                var result = await _workflowService.Run(workflowDto, context, cancellationToken);
 
                 return result;
             }

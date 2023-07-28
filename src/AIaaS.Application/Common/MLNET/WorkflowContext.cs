@@ -1,7 +1,6 @@
 ﻿using AIaaS.Domain.Entities;
 using AIaaS.Domain.Entities.enums;
 using Microsoft.ML;
-using Microsoft.ML.Trainers;
 
 namespace AIaaS.Application.Common.Models
 {

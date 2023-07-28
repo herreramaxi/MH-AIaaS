@@ -10,6 +10,7 @@ using AIaaS.Domain.Entities.enums;
 using AIaaS.Domain.Interfaces;
 using AIaaS.WebAPI.ExtensionMethods;
 using AIaaS.WebAPI.Interfaces;
+using AIaaS.WebAPI.Services;
 using Ardalis.Result;
 using Microsoft.ML;
 using System.Text.Json;
@@ -26,7 +27,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
         private readonly IReadRepository<Dataset> _repository;
         private readonly IDataViewService _dataViewService;
 
-        public DatasetOperator(IReadRepository<Dataset> repository, IWorkflowService workflowService, IDataViewService dataViewService) : base(workflowService)
+        public DatasetOperator(IReadRepository<Dataset> repository, IOperatorService operatorService, IDataViewService dataViewService) : base(operatorService)
         {
             _repository = repository;
             _dataViewService = dataViewService;

@@ -4,6 +4,7 @@ using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.ExtensionMethods;
 using AIaaS.WebAPI.Interfaces;
+using AIaaS.WebAPI.Services;
 using Microsoft.ML;
 using Microsoft.ML.Transforms;
 using System.Text.Json;
@@ -18,7 +19,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
         private string? _normalizationMode;
         private IList<string>? _selectedColumns;
 
-        public NormalizeOperator(IWorkflowService workflowService) : base(workflowService)
+        public NormalizeOperator(IOperatorService operatorService) : base(operatorService)
         {
         }
 

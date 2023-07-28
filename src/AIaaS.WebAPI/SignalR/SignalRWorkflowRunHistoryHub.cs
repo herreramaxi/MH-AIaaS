@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace AIaaS.Application.SignalR
 {
-    public class SignalRWorkflowRunHistoryHub : Hub<IWorkflowCLient>
+    public class SignalRWorkflowRunHistoryHub : Hub<IWorkflowClient>
     {
         public override async Task OnConnectedAsync()
         {
@@ -13,9 +13,10 @@ namespace AIaaS.Application.SignalR
         }
     }
 
-    public interface IWorkflowCLient
+    public interface IWorkflowClient
     {
         Task ReceiveWorkflowRunHistoryUpdate(WorkflowRunHistoryDto workflowRunHistory);
+        Task ReceiveWorkflowNodeRunHistoryUpdate(WorkflowNodeRunHistoryDto workflowNodeRunHistoryDto);
         Task ReceiveMessage(string message);
     }
 }

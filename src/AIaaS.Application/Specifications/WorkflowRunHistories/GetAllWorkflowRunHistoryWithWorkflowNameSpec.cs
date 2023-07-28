@@ -23,6 +23,7 @@ namespace AIaaS.Application.Specifications.WorkflowRunHistories
                 Status = x.Status,
                 Description = x.Description,
                 StatusDetail = x.StatusDetail,
+                TotalMilliseconds= x.TotalMilliseconds,
                 CreatedBy = x.CreatedBy,
                 ModifiedBy = x.ModifiedBy,
                 CreatedOn = x.CreatedOn,

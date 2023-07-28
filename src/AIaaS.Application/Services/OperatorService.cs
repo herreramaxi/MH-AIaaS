@@ -1,5 +1,8 @@
 ﻿using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
+using AIaaS.Domain.Entities;
+using AIaaS.Domain.Entities.enums;
+using AIaaS.Domain.Interfaces;
 using AIaaS.WebAPI.Interfaces;
 
 namespace AIaaS.WebAPI.Services
@@ -7,9 +10,18 @@ namespace AIaaS.WebAPI.Services
     public interface IOperatorService
     {
         IList<OperatorDto> GetOperators();
+        Task UpdateModel(Workflow workflow, MemoryStream modelData, CancellationToken cancellationToken);
+        Task UpdateModelMetrics(Workflow workflow, MetricTypeEnum metricType, string modelSerialized, CancellationToken cancellationToken);
+        Task<WorkflowDataView> AddWorkflowDataView(Workflow workflow, string nodeId, string nodeType, MemoryStream dataViewStream, CancellationToken cancellationToken);
     }
     public class OperatorService : IOperatorService
     {
+        private readonly IRepository<Workflow> _workflowRepository;
+
+        public OperatorService(IRepository<Workflow> workflowRepository)
+        {
+            _workflowRepository = workflowRepository;
+        }
         public IList<OperatorDto> GetOperators()
         {
             var operators = new List<OperatorDto>();
@@ -53,6 +65,26 @@ namespace AIaaS.WebAPI.Services
             }
 
             return operators.OrderBy(x => x.Name).ToList();
+        }
+
+        public async Task UpdateModel(Workflow workflow, MemoryStream modelData, CancellationToken cancellationToken)
+        {
+            workflow.AddOrUpdateMLModelData(modelData);
+            await _workflowRepository.UpdateAsync(workflow, cancellationToken);
+        }
+
+        public async Task UpdateModelMetrics(Workflow workflow, MetricTypeEnum metricType, string modelSerialized, CancellationToken cancellationToken)
+        {
+            workflow.MLModel?.UpdateModelMetrics(metricType, modelSerialized);
+            await _workflowRepository.UpdateAsync(workflow, cancellationToken);
+        }
+
+        public async Task<WorkflowDataView> AddWorkflowDataView(Workflow workflow, string nodeId, string nodeType, MemoryStream dataViewStream, CancellationToken cancellationToken)
+        {
+            var dataView = workflow.AddOrUpdateDataView(nodeId, nodeType, dataViewStream);
+            await _workflowRepository.UpdateAsync(workflow, cancellationToken);
+
+            return dataView;
         }
     }
 }

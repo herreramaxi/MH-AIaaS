@@ -4,6 +4,7 @@ using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.ExtensionMethods;
 using AIaaS.WebAPI.Interfaces;
+using AIaaS.WebAPI.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Microsoft.ML.Data;
@@ -21,7 +22,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
         private string? _categorical;
         private IList<string>? _selectedColumns;
 
-        public EditDatasetOPerator(IWorkflowService workflowService) : base(workflowService)
+        public EditDatasetOPerator(IOperatorService operatorService) : base(operatorService)
         {
         }
 

@@ -1,6 +1,7 @@
 ﻿using AIaaS.Application.Common.Behaviours;
 using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Features.Predictions.Queries.Common;
+using AIaaS.Application.Features.Workflows.Notifications;
 using AIaaS.Application.Interfaces;
 using AIaaS.Application.Services;
 using AIaaS.WebAPI.Interfaces;
@@ -34,6 +35,7 @@ public static class ConfigureServices
         services.AddScoped<IWorkflowService, WorkflowService>();
         services.AddScoped<IPredictionBuilderDirector, PredictionBuilderDirector>();
         services.AddScoped<IDataViewService, DataViewService>();
+        services.AddScoped<IWorkflowRunHistoryContext, WorkflowRunHistoryContext>();
         
         var workflowOperatorTypes = typeof(IWebApiMarker).Assembly
             .GetTypes()

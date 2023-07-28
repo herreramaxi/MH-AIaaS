@@ -2,7 +2,7 @@
 using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
-using AIaaS.WebAPI.Interfaces;
+using AIaaS.WebAPI.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Microsoft.ML.Data;
@@ -16,7 +16,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
     {
         private readonly ILogger<EvaluateModelOperator> _logger;
 
-        public EvaluateModelOperator(ILogger<EvaluateModelOperator> logger, IWorkflowService workflowService) : base(workflowService)
+        public EvaluateModelOperator(ILogger<EvaluateModelOperator> logger, IOperatorService operatorService) : base(operatorService)
         {
             _logger = logger;
         }
@@ -128,11 +128,11 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 
         override public async Task GenerateOuput(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
-            if (context.Workflow.MLModel is null || string.IsNullOrEmpty(context.MetricsSerialized) ) return;
+            if (context.Workflow.MLModel is null || string.IsNullOrEmpty(context.MetricsSerialized)) return;
 
-            await _workflowService.UpdateModelMetrics(context.Workflow, context.Task.Value, context.MetricsSerialized, cancellationToken);
+            await _operatorService.UpdateModelMetrics(context.Workflow, context.Task.Value, context.MetricsSerialized, cancellationToken);
             root.Data.Parameters = new Dictionary<string, object>();
             root.Data.Parameters.Add("ModelMetricsId", context.Workflow.MLModel.ModelMetrics.Id);
-        }     
+        }
     }
 }

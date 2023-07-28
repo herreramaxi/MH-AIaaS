@@ -3,6 +3,7 @@ using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.Interfaces;
+using AIaaS.WebAPI.Services;
 
 namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 {
@@ -12,7 +13,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
     {
         private double _fraction;
 
-        public SplitDataOperator(IWorkflowService workflowService) : base(workflowService)
+        public SplitDataOperator(IOperatorService operatorService) : base(operatorService)
         {
         }
 

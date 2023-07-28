@@ -2,7 +2,7 @@
 
 namespace AIaaS.Application.Common.Models
 {
-    public class WorkflowRunHistoryDto:AuditableEntityDto
+    public class WorkflowRunHistoryDto : AuditableEntityDto
     {
         public int Id { get; set; }
         public int WorkflowId { get; set; }
@@ -13,6 +13,6 @@ namespace AIaaS.Application.Common.Models
         public string StatusHumanized { get; set; }
         public string? Description { get; set; }
         public string? StatusDetail { get; set; }
-        public double? Milliseconds { get; set; }
+        public double? TotalMilliseconds { get; set; }
     }
 }

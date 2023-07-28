@@ -23,7 +23,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
         private string? _trainer;
         private MetricTypeEnum? _taskAsEnum;
 
-        public TrainModelOperator(IWorkflowService workflowService) : base(workflowService)
+        public TrainModelOperator(IOperatorService operatorService) : base(operatorService)
         {
         }
 
@@ -124,7 +124,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             mlContext.Model.Save(trainedModel, context.TrainingData.Schema, stream);
             stream.Seek(0, SeekOrigin.Begin);
 
-            await _workflowService.UpdateModel(context.Workflow, stream, cancellationToken);
+            await _operatorService.UpdateModel(context.Workflow, stream, cancellationToken);
         }
 
         private IEstimator<ITransformer>? GetTrainer(MLContext mlContext, string task, string trainerName)

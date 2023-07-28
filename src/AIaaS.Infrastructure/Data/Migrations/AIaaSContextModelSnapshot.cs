@@ -397,6 +397,60 @@ namespace AIaaS.Infrastructure.Data.Migrations
                     b.ToTable("WorkflowDataViews");
                 });
 
+            modelBuilder.Entity("AIaaS.Domain.Entities.WorkflowNodeRunHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NodeId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NodeType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StatusDetail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double?>("TotalMilliseconds")
+                        .HasColumnType("float");
+
+                    b.Property<int>("WorkflowRunHistoryId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkflowRunHistoryId");
+
+                    b.ToTable("WorkflowNodeRunHistory");
+                });
+
             modelBuilder.Entity("AIaaS.Domain.Entities.WorkflowRunHistory", b =>
                 {
                     b.Property<int>("Id")
@@ -432,6 +486,9 @@ namespace AIaaS.Infrastructure.Data.Migrations
 
                     b.Property<string>("StatusDetail")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<double?>("TotalMilliseconds")
+                        .HasColumnType("float");
 
                     b.Property<int>("WorkflowId")
                         .HasColumnType("int");
@@ -520,6 +577,17 @@ namespace AIaaS.Infrastructure.Data.Migrations
                     b.Navigation("Workflow");
                 });
 
+            modelBuilder.Entity("AIaaS.Domain.Entities.WorkflowNodeRunHistory", b =>
+                {
+                    b.HasOne("AIaaS.Domain.Entities.WorkflowRunHistory", "WorkflowRunHistory")
+                        .WithMany("WorkflowNodeRunHistories")
+                        .HasForeignKey("WorkflowRunHistoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WorkflowRunHistory");
+                });
+
             modelBuilder.Entity("AIaaS.Domain.Entities.WorkflowRunHistory", b =>
                 {
                     b.HasOne("AIaaS.Domain.Entities.Workflow", "Workflow")
@@ -554,6 +622,11 @@ namespace AIaaS.Infrastructure.Data.Migrations
                     b.Navigation("WorkflowDataViews");
 
                     b.Navigation("WorkflowRunHistories");
+                });
+
+            modelBuilder.Entity("AIaaS.Domain.Entities.WorkflowRunHistory", b =>
+                {
+                    b.Navigation("WorkflowNodeRunHistories");
                 });
 #pragma warning restore 612, 618
         }

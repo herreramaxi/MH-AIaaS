@@ -197,7 +197,7 @@ await app.InitialiseDatabaseAsync();
 
 app.MapHealthChecks();
 
-app.MapPost("testsr", async (string message, IHubContext<SignalRWorkflowRunHistoryHub, IWorkflowCLient> context) =>
+app.MapPost("testsr", async (string message, IHubContext<SignalRWorkflowRunHistoryHub, IWorkflowClient> context) =>
 {
     await context.Clients.All.ReceiveMessage(message);
     return Results.NoContent();

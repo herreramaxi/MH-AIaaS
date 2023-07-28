@@ -1,6 +1,7 @@
 ﻿using AIaaS.Domain.Common;
 using AIaaS.Domain.Enums;
 using AIaaS.Domain.Interfaces;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AIaaS.Domain.Entities
 {
@@ -16,6 +17,8 @@ namespace AIaaS.Domain.Entities
 
         private readonly List<WorkflowRunHistory> _workflowRunHistories = new List<WorkflowRunHistory>();
         public IReadOnlyCollection<WorkflowRunHistory> WorkflowRunHistories => _workflowRunHistories.AsReadOnly();
+        [NotMapped]
+        public WorkflowRunHistory? CurrentWorkflowRunHistory { get; private set; }
 
         public void AddOrUpdateMLModelData(MemoryStream stream)
         {
@@ -70,9 +73,25 @@ namespace AIaaS.Domain.Entities
                 EndDate = endDate
             };
 
+            this.CurrentWorkflowRunHistory = workflowRunHistory;
             _workflowRunHistories.Add(workflowRunHistory);
 
             return workflowRunHistory;
+        }
+
+        public WorkflowNodeRunHistory AddWorkflowNodeRunHistory(string nodeId, WorkflowRunStatus status, DateTime startDate, DateTime? endDate = null)
+        {
+            var workflowNodeRunHistory = new WorkflowNodeRunHistory()
+            {
+                NodeId = nodeId,
+                Status = status,
+                StartDate = startDate,
+                EndDate = endDate,
+            };
+
+            this.CurrentWorkflowRunHistory?.AddWorkflowNodeRunHistory(workflowNodeRunHistory);
+
+            return workflowNodeRunHistory;
         }
     }
 }

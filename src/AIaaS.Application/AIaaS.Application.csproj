@@ -23,5 +23,4 @@
 	<ItemGroup>
 		<ProjectReference Include="..\AIaaS.Domain\AIaaS.Domain.csproj" />
 	</ItemGroup>
-
 </Project>
