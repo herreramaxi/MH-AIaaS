@@ -3,8 +3,8 @@ using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.ExtensionMethods;
-using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Services;
+using Ardalis.Result;
 using Microsoft.ML;
 using Microsoft.ML.Transforms;
 using System.Text.Json;
@@ -32,41 +32,36 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             return Task.CompletedTask;
         }
 
-        public override bool Validate(WorkflowContext mlContext, WorkflowNodeDto root)
+        public override Result Validate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
             if (string.IsNullOrEmpty(_normalizationMode))
             {
-                root.SetAsFailed("Normalization mode not selected, please select a normalization mode");
-                return false;
+                return Result.Error("Normalization mode not selected, please select a normalization mode");
             }
 
             if (root.Data?.DatasetColumns is null || !root.Data.DatasetColumns.Any())
             {
-                root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
-                return false;
+                return Result.Error("No selected columns detected on pipeline, please select columns on dataset operator");
             }
 
             if (_selectedColumns is null || !_selectedColumns.Any())
             {
-                root.SetAsFailed("No selected columns detected on operator, please select any column to be normalized");
-                return false;
+                return Result.Error("No selected columns detected on operator, please select any column to be normalized");
             }
 
-            return true;
+            return Result.Success();
         }
 
-        public override Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
+        public override async Task<Result> Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             if (context.InputOutputColumns is null || !context.InputOutputColumns.Any())
             {
-                root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
-                return Task.CompletedTask;
+                return Result.Error("No selected columns detected on pipeline, please select columns on dataset operator");
             }
 
             if (string.IsNullOrEmpty(_normalizationMode) || _selectedColumns is null || !_selectedColumns.Any())
             {
-                root.SetAsFailed("Please verify the operator is correctly configured");
-                return Task.CompletedTask;
+                return Result.Error("Please verify the operator is correctly configured");
             }
 
             var mlContext = context.MLContext;
@@ -77,7 +72,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             var estimator = GetNormalizingEstimator(context, selectedColumns);
             context.EstimatorChain = context.EstimatorChain.AppendEstimator(estimator);
 
-            return Task.CompletedTask;
+            return Result.Success();
         }
 
 

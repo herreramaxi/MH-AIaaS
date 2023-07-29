@@ -3,6 +3,7 @@ using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.Services;
+using Ardalis.Result;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Microsoft.ML.Data;
@@ -26,41 +27,36 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             return Task.CompletedTask;
         }
 
-        public override bool Validate(WorkflowContext context, WorkflowNodeDto root)
+        public override Result Validate(WorkflowContext context, WorkflowNodeDto root)
         {
             if (root.Data?.DatasetColumns is null || !root.Data.DatasetColumns.Any())
             {
-                root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
-                return false;
+                return Result.Error("No selected columns detected on pipeline, please select columns on dataset operator");
             }
 
-            return true;
+            return Result.Success();
         }
 
-        public override async Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
+        public override async Task<Result> Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(context.LabelColumn))
             {
-                root.SetAsFailed("Label column is not found, please add a 'Train Model' operator into the pipeline and select a label column");
-                return;
+                return Result.Error("Label column is not found, please add a 'Train Model' operator into the pipeline and select a label column");
             }
 
             if (context.Trainer is null)
             {
-                root.SetAsFailed("Trainer not found, please add a 'Train Model' operator into the pipeline");
-                return;
+                return Result.Error("Trainer not found, please add a 'Train Model' operator into the pipeline");
             }
 
             if (context.TestData is null)
             {
-                root.SetAsFailed("Test data not found, please add a 'Split Data' operator into the pipeline");
-                return;
+                return Result.Error("Test data not found, please add a 'Split Data' operator into the pipeline");
             }
 
             if (context.Task is null)
             {
-                root.SetAsFailed($"ML Task not found, please ensure the 'Train Model' operator is correctly configured");
-                return;
+                return Result.Error($"ML Task not found, please ensure the 'Train Model' operator is correctly configured");
             }
 
             IDataView predictions = context.TrainedModel.Transform(context.TestData);
@@ -102,15 +98,15 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             }
             else
             {
-                root.SetAsFailed($"Evaluate operator is not able to generate metrics for task: {context.Task}");
-                return;
+                return Result.Error($"Evaluate operator is not able to generate metrics for task: {context.Task}");
             }
 
             if (context.Workflow.MLModel is null)
             {
-                root.SetAsFailed("Model not found, please add a 'Train Model' operator into the pipeline");
-                return;
+                return Result.Error("Model not found, please add a 'Train Model' operator into the pipeline");
             }
+
+            return Result.Success();
         }
 
         public void PrintRegressionMetrics(string name, RegressionMetrics metrics)

@@ -36,7 +36,8 @@ namespace AIaaS.WebAPI.SignalR
         public async Task Handle(WorkflowNodeRunHistoryChangeNotification notification, CancellationToken cancellationToken)
         {        
             var mapped = _mapper.Map<WorkflowNodeRunHistoryDto>(notification.WorkflowNodeRunHistory);
-            await _context.Clients.All.ReceiveWorkflowNodeRunHistoryUpdate(mapped);
+            var message = WebSocketMessage.CreateMessage(mapped);
+            await _context.Clients.All.ReceiveWorkflowUpdate(message);
         }
     }
 }

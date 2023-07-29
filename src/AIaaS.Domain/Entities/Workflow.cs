@@ -59,7 +59,7 @@ namespace AIaaS.Domain.Entities
             return dataView;
         }
 
-        public void UpdateData(string data)
+        public void UpdateData(string? data)
         {
             this.Data = data;
         }

@@ -3,8 +3,8 @@ using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.ExtensionMethods;
-using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Services;
+using Ardalis.Result;
 using Microsoft.ML;
 using System.Text.Json;
 
@@ -30,41 +30,36 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             return Task.CompletedTask;
         }
 
-        public override bool Validate(WorkflowContext context, WorkflowNodeDto root)
+        public override Result Validate(WorkflowContext context, WorkflowNodeDto root)
         {
             if (string.IsNullOrEmpty(_cleanMode))
             {
-                root.SetAsFailed("Clean mode not selected, please select a clean mode");
-                return false;
+                return Result.Error("Clean mode not selected, please select a clean mode");
             }
 
             if (root.Data?.DatasetColumns is null || !root.Data.DatasetColumns.Any())
             {
-                root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
-                return false;
+                return Result.Error("No selected columns detected on pipeline, please select columns on dataset operator");
             }
 
             if (_selectedColumns is null || !_selectedColumns.Any())
             {
-                root.SetAsFailed("No selected columns detected on operator, please select any column to be cleaned");
-                return false;
+                return Result.Error("No selected columns detected on operator, please select any column to be cleaned");
             }
 
-            return true;
+            return Result.Success();
         }
 
-        public override async Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
+        public override async Task<Result> Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             if (context.InputOutputColumns is null || !context.InputOutputColumns.Any())
             {
-                root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
-                return;
+                return Result.Error("No selected columns detected on pipeline, please select columns on dataset operator");
             }
 
             if (_cleanMode is null || _selectedColumns is null || !_selectedColumns.Any())
             {
-                root.SetAsFailed("Please verify the operator is correctly configured");
-                return;
+                return Result.Error("Please verify the operator is correctly configured");
             }
 
             var mlContext = context.MLContext;
@@ -84,7 +79,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
                 context.EstimatorChain = context.EstimatorChain.AppendEstimator(estimator);
             }
 
-            return;
+            return Result.Success();
         }
     }
 }

@@ -7,8 +7,9 @@ namespace AIaaS.Application.Specifications.Datasets
     {
         public DatasetGetAllSpec()
         {
-            Query.
-             OrderBy(x => x.Name);
+            Query
+                .Include(x => x.FileStorage)
+                .OrderBy(x => x.Name);
         }
     }
 }

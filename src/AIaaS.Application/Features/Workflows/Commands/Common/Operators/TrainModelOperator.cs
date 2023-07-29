@@ -1,14 +1,11 @@
 ﻿using AIaaS.Application.Common.Models;
 using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
-using AIaaS.Domain.Entities;
 using AIaaS.Domain.Entities.enums;
-using AIaaS.Domain.Interfaces;
 using AIaaS.WebAPI.ExtensionMethods;
-using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Services;
+using Ardalis.Result;
 using Microsoft.ML;
-using Tensorflow.Contexts;
 
 namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 {
@@ -41,49 +38,43 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             return Task.CompletedTask;
         }
 
-        public override bool Validate(WorkflowContext mlContext, WorkflowNodeDto root)
+        public override Result Validate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
             if (root.Data?.DatasetColumns is null || !root.Data.DatasetColumns.Any())
             {
-                root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
-                return false;
+                return Result.Error("No selected columns detected on pipeline, please select columns on dataset operator");
             }
 
             if (string.IsNullOrEmpty(_labelColumn))
             {
-                root.SetAsFailed("Please configure a label column");
-                return false;
+                return Result.Error("Please configure a label column");
             }
 
             if (string.IsNullOrEmpty(_task))
             {
-                root.SetAsFailed("Please select a ML task");
-                return false;
+                return Result.Error("Please select a ML task");
             }
 
             if (_taskAsEnum is null)
             {
-                root.SetAsFailed($"The ML task {_task} selected is invalid, please select a valid ML task from the operator configuration");
-                return false;
+                return Result.Error($"The ML task {_task} selected is invalid, please select a valid ML task from the operator configuration");
             }
 
             if (string.IsNullOrEmpty(_trainer))
             {
-                root.SetAsFailed("Please select a task trainer");
-                return false;
+                return Result.Error("Please select a task trainer");
             }
 
-            return true;
+            return Result.Success();
         }
 
-        public override async Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
+        public override async Task<Result> Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             context.Task = _taskAsEnum;
 
             if (context.ColumnSettings is null || !context.ColumnSettings.Any())
             {
-                root.SetAsFailed("Column settings not found, please select columns on dataset operator");
-                return;
+                return Result.Error("Column settings not found, please select columns on dataset operator");
             }
 
             context.LabelColumn = _labelColumn;
@@ -94,14 +85,12 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 
             if (!features.Any())
             {
-                root.SetAsFailed("Feature columns not found, please select columns on dataset operator");
-                return;
+                return Result.Error("Feature columns not found, please select columns on dataset operator");
             }
 
             if (context.TrainingData is null)
             {
-                root.SetAsFailed("Training data not found, please ensure that there is a 'Split Data' operator correctly configured on the pipeline");
-                return;
+                return Result.Error("Training data not found, please ensure that there is a 'Split Data' operator correctly configured on the pipeline");
             }
 
             var mlContext = context.MLContext;
@@ -111,8 +100,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             var trainer = GetTrainer(mlContext, _task, _trainer);
             if (trainer is null)
             {
-                root.SetAsFailed($"No trainer found for {_trainer}");
-                return;
+                return Result.Error($"No trainer found for {_trainer}");
             }
 
             var trainingPipeline = context.EstimatorChain.Append(trainer);
@@ -125,6 +113,8 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             stream.Seek(0, SeekOrigin.Begin);
 
             await _operatorService.UpdateModel(context.Workflow, stream, cancellationToken);
+
+            return Result.Success();
         }
 
         private IEstimator<ITransformer>? GetTrainer(MLContext mlContext, string task, string trainerName)

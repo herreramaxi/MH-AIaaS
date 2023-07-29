@@ -40,46 +40,41 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             return Task.CompletedTask;
         }
 
-        public override bool Validate(WorkflowContext mlContext, WorkflowNodeDto root)
+        public override Result Validate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
             if (_datasetId is null)
             {
-                root.SetAsFailed("Please select a dataset");
-                return false;
+                return Result.Error("Please select a dataset");
             }
 
             if (_selectedColumns is null || !_selectedColumns.Any())
             {
-                root.SetAsFailed("Please select columns from dataset");
-                return false;
+                return Result.Error("Please select columns from dataset");
             }
 
-            return true;
+            return Result.Success();
         }
 
-        public override async Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
+        public override async Task<Result> Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             if (_datasetId is null || _selectedColumns is null || !_selectedColumns.Any())
-                return;
+                return Result.Error("Parameters not provided");
 
             context.Dataset = await _repository.FirstOrDefaultAsync(new DatasetByIdWithColumnSettingsAndDataViewFileSpec(_datasetId.Value));
 
             if (context.Dataset is null)
             {
-                root.SetAsFailed("Dataset not found");
-                return;
+                return Result.Error("Dataset not found");
             }
 
             if (context.Dataset.DataViewFile is null)
             {
-                root.SetAsFailed("DataViewFile not found");
-                return;
+                return Result.Error("DataViewFile not found");
             }
 
             if (context.Dataset.ColumnSettings is null || !context.Dataset.ColumnSettings.Any())
             {
-                root.SetAsFailed("ColumnsSettings not found");
-                return;
+                return Result.Error("ColumnsSettings not found");
             }
 
             var datasetColumnNames = context.Dataset.ColumnSettings.Select(x => x.ColumnName);
@@ -87,8 +82,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 
             if (nonExistingColumnNames.Any())
             {
-                root.SetAsFailed($"The following selected columns do not exists in Dataset: {string.Join(", ", nonExistingColumnNames)}");
-                return;
+                return Result.Error($"The following selected columns do not exists in Dataset: {string.Join(", ", nonExistingColumnNames)}");
             }
 
             //TODO: propagate this columns, so if I add editDataset operator, then it will modify and propagate those columns
@@ -100,8 +94,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             var dataViewResult = await _dataViewService.GetDataViewAsync(context.Dataset.DataViewFile);
             if (!dataViewResult.IsSuccess)
             {
-                root.SetAsFailed(dataViewResult.Errors.FirstOrDefault() ?? "Error wehn trying to downloaddataview file from S3");
-                return;
+                return Result.Error(dataViewResult.Errors.FirstOrDefault() ?? "Error wehn trying to downloaddataview file from S3");
             }
 
             context.DataView = dataViewResult.Value;
@@ -112,6 +105,8 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
                 var estimator = context.MLContext.Transforms.DropColumns(columnsToBeDropped);
                 context.EstimatorChain = context.EstimatorChain.AppendEstimator(estimator);
             }
+
+            return Result.Success();
         }
 
         public override void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root)

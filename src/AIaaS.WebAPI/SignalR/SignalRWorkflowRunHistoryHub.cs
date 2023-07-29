@@ -1,4 +1,5 @@
 ﻿using AIaaS.Application.Common.Models;
+using AIaaS.Application.Features.Workflows.Notifications;
 using Microsoft.AspNetCore.SignalR;
 
 namespace AIaaS.Application.SignalR
@@ -15,8 +16,10 @@ namespace AIaaS.Application.SignalR
 
     public interface IWorkflowClient
     {
-        Task ReceiveWorkflowRunHistoryUpdate(WorkflowRunHistoryDto workflowRunHistory);
-        Task ReceiveWorkflowNodeRunHistoryUpdate(WorkflowNodeRunHistoryDto workflowNodeRunHistoryDto);
+        //Task ReceiveWorkflowRunHistoryUpdate(WorkflowRunHistoryDto workflowRunHistory);
+        //Task ReceiveWorkflowNodeRunHistoryUpdate(WorkflowNodeRunHistoryDto workflowNodeRunHistoryDto);
+        //Task ReceiveWorkflowNodeValidateUpdate(WorkflowNodeValidateChangeDto workflowNodeValidateChangeDto);
+        Task ReceiveWorkflowUpdate(WebSocketMessage message);
         Task ReceiveMessage(string message);
     }
 }

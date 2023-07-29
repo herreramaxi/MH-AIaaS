@@ -32,7 +32,7 @@ public static class ConfigureServices
 
 
         services.AddScoped<IOperatorService, OperatorService>();
-        services.AddScoped<IWorkflowService, WorkflowService>();
+        services.AddScoped<INodeProcessorService, NodeProcessorService>();
         services.AddScoped<IPredictionBuilderDirector, PredictionBuilderDirector>();
         services.AddScoped<IDataViewService, DataViewService>();
         services.AddScoped<IWorkflowRunHistoryContext, WorkflowRunHistoryContext>();

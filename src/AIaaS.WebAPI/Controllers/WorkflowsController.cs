@@ -1,6 +1,7 @@
 ﻿using AIaaS.Application.Common.Models;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Application.Features.Workflows.Commands;
+using AIaaS.Application.Features.Workflows.Commands.ValidateAndSaveWorkflow;
 using AIaaS.Application.Features.Workflows.Queries;
 using AIaaS.Application.Features.Workflows.Queries.GetLatestWorkflowRunHistory;
 using Ardalis.Result.AspNetCore;
@@ -54,10 +55,10 @@ namespace AIaaS.WebAPI.Controllers
         }
 
         [HttpPut]
-        public async Task<ActionResult<WorkflowDto>> Save(WorkflowSaveDto workflowSaveDto)
+        public async Task<ActionResult<WorkflowDto>> Save(WorkflowDto workflowDto)
         {
-            var query = new SaveWorkflowCommand(workflowSaveDto);
-            var workflow = await _mediator.Send(query);
+            var command = new ValidateAndSaveCommand(workflowDto);
+            var workflow = await _mediator.Send(command);
 
             return workflow.ToActionResult(this);
         }
@@ -88,16 +89,7 @@ namespace AIaaS.WebAPI.Controllers
 
             return workflow.ToActionResult(this);
         }
-
-        [HttpPost("validate")]
-        public async Task<ActionResult<WorkflowDto>> Validate(WorkflowDto workflowDto)
-        {
-            var command = new ValidateWorkflowCommand(workflowDto);
-            var workflow = await _mediator.Send(command);
-
-            return workflow.ToActionResult(this);
-        }
-
+             
         [HttpGet("getPreview/{workflowDataviewId:int}")]
         public async Task<ActionResult<DataViewFilePreviewDto?>> GetPreview(int workflowDataviewId)
         {
@@ -106,16 +98,6 @@ namespace AIaaS.WebAPI.Controllers
             var previewResult = await _mediator.Send(query);
 
             return previewResult.ToActionResult(this);
-        }
-
-
-        [HttpGet("getLatestWorkflowRunHistory/{workflowId:int}")]
-        public async Task<IActionResult> GetLatestWorkflowRunHistory(int workflowId)
-        {
-            var query = new GetLatestWorkflowRunHistoryQuery(workflowId);
-            var workflowRunHistory = await _mediator.Send(query);
-
-            return Ok(workflowRunHistory);
-        }
+        }     
     }
 }

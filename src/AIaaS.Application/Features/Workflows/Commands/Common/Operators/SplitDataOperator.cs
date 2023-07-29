@@ -4,6 +4,7 @@ using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Services;
+using Ardalis.Result;
 
 namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 {
@@ -22,42 +23,39 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             return Task.CompletedTask;
         }
 
-        public override bool Validate(WorkflowContext mlContext, WorkflowNodeDto root)
+        public override Result Validate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
             if (root.Data?.DatasetColumns is null || !root.Data.DatasetColumns.Any())
             {
-                root.SetAsFailed("No selected columns detected on pipeline, please select columns on dataset operator");
-                return false;
+              return Result.Error("No selected columns detected on pipeline, please select columns on dataset operator");
             }
 
             var fraction = root.GetParameterValue<double>("Test Fraction");
 
             if (fraction is null || fraction == 0)
             {
-                root.SetAsFailed("Please enter a 'Test Fraction' greater than zero");
-                return false;
+                return Result.Error("Please enter a 'Test Fraction' greater than zero");
             }
 
             _fraction = (double)fraction;
 
-            return true;
+            return Result.Success();
         }
 
-        public override Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
+        public override async Task<Result> Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             var mlContext = context.MLContext;
 
             if (context.DataView is null)
             {
-                root.SetAsFailed("DataView not found, please ensure there is a 'dataset' operator correctly configured");
-                return Task.CompletedTask;
+                return Result.Error("DataView not found, please ensure there is a 'dataset' operator correctly configured");
             }
 
             var trainTestSplit = mlContext.Data.TrainTestSplit(context.DataView, testFraction: _fraction);
             context.TrainingData = trainTestSplit.TrainSet;
             context.TestData = trainTestSplit.TestSet;
 
-            return Task.CompletedTask;
+            return Result.Success();
         }
     }
 }

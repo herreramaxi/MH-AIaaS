@@ -3,9 +3,8 @@ using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.Domain.Entities.enums;
 using AIaaS.WebAPI.ExtensionMethods;
-using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Services;
-using Microsoft.Extensions.Logging;
+using Ardalis.Result;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using System.Text.Json;
@@ -34,29 +33,26 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             return Task.CompletedTask;
         }
 
-        public override bool Validate(WorkflowContext context, WorkflowNodeDto root)
+        public override Result Validate(WorkflowContext context, WorkflowNodeDto root)
         {
             if (_selectedColumns is null || !_selectedColumns.Any())
             {
-                root.SetAsFailed("Please select columns to be converted");
-                return false;
+                return Result.Error("Please select columns to be converted");
             }
 
             if (string.IsNullOrEmpty(_dataType) && string.IsNullOrEmpty(_categorical))
             {
-                root.SetAsFailed("At least you must select a data type categorical conversion");
-                return false;
+                return Result.Error("At least you must select a data type categorical conversion");
             }
 
-            return true;
+            return Result.Success();
         }
 
-        public override Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
+        public override async Task<Result> Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
             if (_selectedColumns is null || !_selectedColumns.Any() || context.InputOutputColumns is null || !context.InputOutputColumns.Any())
             {
-                root.SetAsFailed("Please ensure the operator is correctly configured");
-                return Task.CompletedTask;
+                return Result.Error("Please ensure the operator is correctly configured");
             }
 
             var mlContext = context.MLContext;
@@ -68,8 +64,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 
                 if (!converted)
                 {
-                    root.SetAsFailed("Wrong value from data type");
-                    return Task.CompletedTask;
+                    return Result.Error("Wrong value from data type");
                 }
 
                 var estimator = mlContext.Transforms.Conversion.ConvertType(columnsToBeConverted, dataKind);
@@ -82,14 +77,13 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 
                 if (estimator is null)
                 {
-                    root.SetAsFailed("Wrong value from categorical type");
-                    return Task.CompletedTask;
+                    return Result.Error("Wrong value from categorical type");
                 }
 
                 context.EstimatorChain = context.EstimatorChain.AppendEstimator(estimator);
             }
 
-            return Task.CompletedTask;
+            return Result.Success();
         }
 
         private IEstimator<ITransformer>? GetCategoricalEstimator(MLContext mlContext, InputOutputColumnPair[] columnsToBeConverted)

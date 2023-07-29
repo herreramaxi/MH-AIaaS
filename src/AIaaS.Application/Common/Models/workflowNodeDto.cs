@@ -15,16 +15,24 @@ namespace AIaaS.Application.Common.Models.Dtos
         {
             if (this.Data is null) return;
 
-            this.Data.ValidationMessage = errorMessage;
-            this.Data.IsFailed = true;
+            this.Data.StatusDetail = errorMessage;
+            this.Data.Status = Domain.Enums.WorkflowRunStatus.Failed;
         }
 
         public void SetAsSuccess()
         {
             if (this.Data is null) return;
 
-            this.Data.ValidationMessage = null;
-            this.Data.IsFailed = false;
+            this.Data.StatusDetail = null;
+            this.Data.Status = Domain.Enums.WorkflowRunStatus.Finished;
+        }
+
+        public void SetAsRunning()
+        {
+            if (this.Data is null) return;
+
+            this.Data.StatusDetail = null;
+            this.Data.Status = Domain.Enums.WorkflowRunStatus.Running;
         }
 
         public U? GetParameterValue<T, U>(string parameterName, Func<T, U?> conversionFn) where T : IConvertible

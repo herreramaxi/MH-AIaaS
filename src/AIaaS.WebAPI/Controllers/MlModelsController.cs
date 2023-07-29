@@ -18,7 +18,6 @@ namespace AIaaS.WebAPI.Controllers
             _dbContext = dbContext;
         }
 
-        // GET: api/<ModelsController>
         [HttpGet]
         public IActionResult Get()
         {
@@ -30,6 +29,7 @@ namespace AIaaS.WebAPI.Controllers
                     Name = x.Workflow.Name,
                     IsPublished = x.Endpoint != null,
                     Id = x.Id,
+                    Size = x.Size,
                     CreatedBy = x.CreatedBy,
                     CreatedOn = x.CreatedOn,
                     ModifiedBy = x.ModifiedBy,
@@ -40,12 +40,11 @@ namespace AIaaS.WebAPI.Controllers
             return Ok(models);
         }
 
-        // GET api/<ModelsController>/5
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
             var model = await _dbContext.MLModels
-                 .Include(x => x.Workflow)
+                .Include(x => x.Workflow)
                 .Include(x => x.Endpoint)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
@@ -73,18 +72,6 @@ namespace AIaaS.WebAPI.Controllers
             };
 
             return Ok(dto);
-        }
-
-        // POST api/<ModelsController>
-        [HttpPost]
-        public void Post([FromBody] string value)
-        {
-        }
-
-        // PUT api/<ModelsController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
         }
 
         [HttpDelete("{id}")]

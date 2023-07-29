@@ -3,6 +3,7 @@ using AIaaS.Application.Common.Models.CustomAttributes;
 using AIaaS.Application.Common.Models.Dtos;
 using AIaaS.WebAPI.Interfaces;
 using AIaaS.WebAPI.Services;
+using Ardalis.Result;
 using Microsoft.ML;
 using System.Diagnostics;
 
@@ -30,14 +31,14 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
         {
             if (parent.Data is null) return;
 
-            parent.Data.IsFailed = false;
-            parent.Data.ValidationMessage = null;
+            parent.Data.Status = null;
+            parent.Data.StatusDetail = null;
             parent.Data.DatasetColumns = null;
         }
 
         public abstract Task Hydrate(WorkflowContext context, WorkflowNodeDto root);
-        public abstract Task Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken);
-        public abstract bool Validate(WorkflowContext context, WorkflowNodeDto root);
+        public abstract Task<Result> Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken);
+        public abstract Result Validate(WorkflowContext context, WorkflowNodeDto root);
         public virtual void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root)
         {
             var parentDatasetColumns = root.Parent?.Data?.DatasetColumns;
