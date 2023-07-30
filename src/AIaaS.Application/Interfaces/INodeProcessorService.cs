@@ -9,6 +9,6 @@ namespace AIaaS.Application.Interfaces
     {
         public event NodeStartProcessingHandler NodeStartProcessingEvent;
         public event NodeFinishProcessingHandler NodeFinishProcessingEvent;
-        Task<Result<WorkflowDto>> Run(WorkflowDto workflowDto, WorkflowContext context, CancellationToken cancellationToken);
+        Task<Result<WorkflowDto>> Run(WorkflowDto workflowDto, WorkflowContext context, CancellationToken cancellationToken, bool ignoreNodeErrors = false);
     }
 }

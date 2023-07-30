@@ -1,4 +1,5 @@
-﻿using AIaaS.Domain.Enums;
+﻿using AIaaS.Application.Features.Workflows.Notifications;
+using AIaaS.Domain.Enums;
 
 namespace AIaaS.Application.Common.Models
 {
@@ -8,7 +9,7 @@ namespace AIaaS.Application.Common.Models
         public WebSocketMessageType MessageType { get; private set; }
         public object? Payload { get; private set; }
 
-        public static WebSocketMessage CreateMessage( WorkflowRunHistoryDto payload)
+        public static WebSocketMessage CreateMessage(WorkflowRunHistoryDto payload)
         {
             return new WebSocketMessage
             {
@@ -18,7 +19,7 @@ namespace AIaaS.Application.Common.Models
             };
         }
 
-        public static WebSocketMessage CreateMessage(WorkflowNodeRunHistoryDto payload)
+        public static WebSocketMessage CreateMessage(WorkflowNodeRunHistoryChangeNotification payload)
         {
             return new WebSocketMessage
             {

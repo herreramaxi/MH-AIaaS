@@ -1,5 +1,6 @@
 ﻿using AIaaS.Application.Common.Models;
 using AIaaS.Application.Features.Workflows.Commands.ValidateAndSaveWorkflow;
+using AIaaS.Application.Features.Workflows.Notifications;
 using AIaaS.Application.Interfaces;
 using AIaaS.Application.Specifications.Workflows;
 using AIaaS.Domain.Entities;
@@ -43,29 +44,23 @@ namespace AIaaS.Application.Features.Workflows.Commands
                     return Result.NotFound("Workflow not found");
                 }
 
-                var context = new WorkflowContext()
-                {
-                    RunWorkflow = false
-                };
+                workflow.UpdateData(request.WorkflowDto.Root);
 
-                var result = await _nodeProcessor.Run(request.WorkflowDto, context, cancellationToken);
+                _nodeProcessor.NodeStartProcessingEvent += (node, workflowRunHistoryId) => _nodeProcessor_NodeStartProcessingEvent(node, workflowRunHistoryId, cancellationToken);
+                _nodeProcessor.NodeFinishProcessingEvent += (node, result) => _nodeProcessor_NodeFinishProcessingEvent(node, result, cancellationToken);
 
-                if (!result.IsSuccess)
+                var context = new WorkflowContext() { RunWorkflow = false };
+                var result = await _nodeProcessor.Run(request.WorkflowDto, context, cancellationToken, ignoreNodeErrors: true);
+
+                if (result.IsSuccess && !string.IsNullOrEmpty(result.Value?.Root))
                 {
-                    return result;
+                    workflow.UpdateData(result.Value.Root);
                 }
 
-                if (string.IsNullOrEmpty(result.Value?.Root))
-                {
-                    return Result.Error("Serialized workflow is null or empty");
-                }
-
-                workflow.UpdateData(result.Value.Root);
                 await _workflowRepository.UpdateAsync(workflow, cancellationToken);
-
                 var mapped = _mapper.Map<Workflow, WorkflowDto>(workflow);
 
-                return Result.Success(mapped);
+                return result.IsSuccess ? Result.Success(mapped) : result;
             }
             catch (Exception ex)
             {
@@ -73,6 +68,41 @@ namespace AIaaS.Application.Features.Workflows.Commands
 
                 return Result.Error($"Error when validating workflow: {ex.Message}");
             }
+            finally
+            {
+                _nodeProcessor.NodeStartProcessingEvent -= (node, workflowRunHistoryId) => _nodeProcessor_NodeStartProcessingEvent(node, workflowRunHistoryId, cancellationToken);
+                _nodeProcessor.NodeFinishProcessingEvent -= (node, result) => _nodeProcessor_NodeFinishProcessingEvent(node, result, cancellationToken);
+            }
+        }
+
+        private WorkflowNodeRunHistory? _workflowNodeRunHistory;
+        private async Task _nodeProcessor_NodeStartProcessingEvent(Application.Common.Models.Dtos.WorkflowNodeDto? node, int? workflowRunHistoryId, CancellationToken cancellationToken)
+        {
+            if (node is null || node.Data.NodeGuid is null) return;
+
+            _workflowNodeRunHistory = WorkflowNodeRunHistory.Create(workflowRunHistoryId, node.Data.NodeGuid.Value, node.Type);
+            var change = new WorkflowNodeRunHistoryChangeNotification(_workflowNodeRunHistory.NodeGuid,
+                _workflowNodeRunHistory.NodeType,
+                _workflowNodeRunHistory.Status,
+                _workflowNodeRunHistory.StatusDetail);
+
+            await _publisher.Publish(change, cancellationToken);
+        }
+
+        private async Task _nodeProcessor_NodeFinishProcessingEvent(Application.Common.Models.Dtos.WorkflowNodeDto? node, Result processNodeResult, CancellationToken cancellationToken)
+        {
+            if (_workflowNodeRunHistory is null || node is null) return;
+
+            _workflowNodeRunHistory.CompleteWorkflowRunHistory(
+               processNodeResult.Status == ResultStatus.Ok ? Domain.Enums.WorkflowRunStatus.Finished : Domain.Enums.WorkflowRunStatus.Failed,
+               processNodeResult.Errors.Any() ? processNodeResult.Errors.FirstOrDefault() : null);
+
+            var change = new WorkflowNodeRunHistoryChangeNotification(_workflowNodeRunHistory.NodeGuid,
+          _workflowNodeRunHistory.NodeType,
+          _workflowNodeRunHistory.Status,
+          _workflowNodeRunHistory.StatusDetail,
+          node.Data.DatasetColumns);
+            await _publisher.Publish(change, cancellationToken);
         }
     }
 }

@@ -25,17 +25,15 @@ namespace AIaaS.Application.Services
             _workflowRunHistoryContext = workflowRunHistoryContext;
         }
 
-        public async Task<Result<WorkflowDto>> Run(WorkflowDto workflowDto, WorkflowContext context, CancellationToken cancellationToken)
+        public async Task<Result<WorkflowDto>> Run(WorkflowDto workflowDto, WorkflowContext context, CancellationToken cancellationToken, bool ignoreNodeErrors = false)
         {
             var workflowGraphDto = workflowDto.GetDeserializedWorkflowGraph();
-
             if (workflowGraphDto is null)
             {
                 return Result.Error("Not able to process workflow");
             }
 
             var nodes = workflowGraphDto.Root.ToList(doubleLinked: true, generateGuidIfNotExist: true);
-
             if (!nodes.Any())
             {
                 return Result.Error("There are no operators in the workflow, please configure your workflow with operators");
@@ -48,6 +46,11 @@ namespace AIaaS.Application.Services
                 var result = await ProcessNode(node, context, cancellationToken);
 
                 await OnNodeFinishProcessing(node, _workflowRunHistoryContext.WorkflowRunHistory?.Id, result);
+
+                if (!ignoreNodeErrors && !result.IsSuccess)
+                {
+                    return result;
+                }
             }
 
             workflowDto.UpdateSerializedRootFromGraph(workflowGraphDto);
@@ -59,30 +62,7 @@ namespace AIaaS.Application.Services
 
             return Result.Success(workflowDto);
         }
-
-        private async Task OnNodeStartProcessing(WorkflowNodeDto node, int? workflowRunHistoryId)
-        {
-            node.SetAsRunning();
-
-            if (NodeStartProcessingEvent is null) return;
-            await NodeStartProcessingEvent.Invoke(node, workflowRunHistoryId);
-        }
-
-        private async Task OnNodeFinishProcessing(WorkflowNodeDto node, int? workflowRunHistoryId, Result processNodeResult)
-        {
-            if (!processNodeResult.IsSuccess)
-            {
-                node.SetAsFailed(processNodeResult.Errors.FirstOrDefault() ?? "");
-            }
-            else
-            {
-                node.SetAsSuccess();
-            }
-
-            if (NodeFinishProcessingEvent is null) return;
-            await NodeFinishProcessingEvent.Invoke(node, processNodeResult);
-        }
-
+             
         private async Task<Result> ProcessNode(WorkflowNodeDto node, WorkflowContext context, CancellationToken cancellationToken)
         {
             try
@@ -118,5 +98,29 @@ namespace AIaaS.Application.Services
                 return Result.Error($"Error when executing operator {node.Type}: {ex.Message}");
             }
         }
+
+        private async Task OnNodeStartProcessing(WorkflowNodeDto node, int? workflowRunHistoryId)
+        {
+            node.SetAsRunning();
+
+            if (NodeStartProcessingEvent is null) return;
+            await NodeStartProcessingEvent.Invoke(node, workflowRunHistoryId);
+        }
+
+        private async Task OnNodeFinishProcessing(WorkflowNodeDto node, int? workflowRunHistoryId, Result processNodeResult)
+        {
+            if (!processNodeResult.IsSuccess)
+            {
+                node.SetAsFailed(processNodeResult.Errors.FirstOrDefault() ?? "");
+            }
+            else
+            {
+                node.SetAsSuccess();
+            }
+
+            if (NodeFinishProcessingEvent is null) return;
+            await NodeFinishProcessingEvent.Invoke(node, processNodeResult);
+        }
+
     }
 }
