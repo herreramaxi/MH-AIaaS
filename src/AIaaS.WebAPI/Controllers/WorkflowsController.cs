@@ -46,12 +46,14 @@ namespace AIaaS.WebAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create()
+        public async Task<ActionResult<WorkflowDto>> Create([FromBody] bool useMLTemplate = false)
         {
-            var query = new CreateWorkflowCommand();
-            var workflow = await _mediator.Send(query);
+            var query = new CreateWorkflowCommand(useMLTemplate);
+            var result = await _mediator.Send(query);
 
-            return CreatedAtAction(nameof(GetById), new { id = workflow.Id }, workflow);
+            return result.IsSuccess ?
+                CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value) :
+                result.ToActionResult(this);
         }
 
         [HttpPut]
@@ -89,7 +91,7 @@ namespace AIaaS.WebAPI.Controllers
 
             return workflow.ToActionResult(this);
         }
-             
+
         [HttpGet("getPreview/{workflowDataviewId:int}")]
         public async Task<ActionResult<DataViewFilePreviewDto?>> GetPreview(int workflowDataviewId)
         {
@@ -98,6 +100,6 @@ namespace AIaaS.WebAPI.Controllers
             var previewResult = await _mediator.Send(query);
 
             return previewResult.ToActionResult(this);
-        }     
+        }
     }
 }

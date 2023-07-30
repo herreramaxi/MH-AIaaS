@@ -37,7 +37,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
                 return Result.Error("Clean mode not selected, please select a clean mode");
             }
 
-            if (root.Data?.DatasetColumns is null || !root.Data.DatasetColumns.Any())
+            if (root.Data.DatasetColumns is null || !root.Data.DatasetColumns.Any())
             {
                 return Result.Error("No selected columns detected on pipeline, please select columns on dataset operator");
             }

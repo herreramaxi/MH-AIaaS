@@ -1,5 +1,4 @@
 ﻿using AIaaS.Domain.Common;
-using AIaaS.Domain.Enums;
 using AIaaS.Domain.Interfaces;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -32,66 +31,10 @@ namespace AIaaS.Domain.Entities
                 MLModel.SetData(stream);
             }
         }
-
-        public WorkflowDataView AddOrUpdateDataView(string nodeId, string nodeType, MemoryStream dataViewStream)
-        {
-            var dataView = this.WorkflowDataViews.FirstOrDefault(x => x.NodeId.Equals(nodeId, StringComparison.InvariantCultureIgnoreCase));
-
-            if (dataView is null)
-            {
-                dataView = new WorkflowDataView
-                {
-                    Workflow = this,
-                    NodeId = nodeId,
-                    NodeType = nodeType,
-                    Size = dataViewStream.Length,
-                    Data = dataViewStream.ToArray()
-                };
-
-                _workflowDataViews.Add(dataView);
-            }
-            else
-            {
-                dataView.Size = dataViewStream.Length;
-                dataView.Data = dataViewStream.ToArray();
-            }
-
-            return dataView;
-        }
-
+          
         public void UpdateData(string? data)
         {
             this.Data = data;
-        }
-
-        public WorkflowRunHistory AddWorkflowRunHistory(WorkflowRunStatus status,  DateTime startDate, DateTime? endDate = null)
-        {
-            var workflowRunHistory = new WorkflowRunHistory()
-            {
-                Status = status,
-                StartDate = startDate,
-                EndDate = endDate
-            };
-
-            this.CurrentWorkflowRunHistory = workflowRunHistory;
-            _workflowRunHistories.Add(workflowRunHistory);
-
-            return workflowRunHistory;
-        }
-
-        public WorkflowNodeRunHistory AddWorkflowNodeRunHistory(string nodeId, WorkflowRunStatus status, DateTime startDate, DateTime? endDate = null)
-        {
-            var workflowNodeRunHistory = new WorkflowNodeRunHistory()
-            {
-                NodeId = nodeId,
-                Status = status,
-                StartDate = startDate,
-                EndDate = endDate,
-            };
-
-            this.CurrentWorkflowRunHistory?.AddWorkflowNodeRunHistory(workflowNodeRunHistory);
-
-            return workflowNodeRunHistory;
-        }
+        }      
     }
 }

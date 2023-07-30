@@ -5,10 +5,10 @@ namespace AIaaS.Application.Specifications.Workflows
 {
     public class WorkflowDataViewByNodeIdSpec : SingleResultSpecification<WorkflowDataView>
     {
-        public WorkflowDataViewByNodeIdSpec(string nodeId)
+        public WorkflowDataViewByNodeIdSpec(Guid nodeGuid)
         {
             Query
-                .Where(x => x.NodeId.Equals(nodeId, StringComparison.InvariantCultureIgnoreCase));
+                .Where(x => x.NodeGuid.Equals(nodeGuid));
         }
     }
 }

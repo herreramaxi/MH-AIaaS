@@ -29,7 +29,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 
         public override Result Validate(WorkflowContext context, WorkflowNodeDto root)
         {
-            if (root.Data?.DatasetColumns is null || !root.Data.DatasetColumns.Any())
+            if (root.Data.DatasetColumns is null || !root.Data.DatasetColumns.Any())
             {
                 return Result.Error("No selected columns detected on pipeline, please select columns on dataset operator");
             }
@@ -122,13 +122,17 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             _logger.LogInformation($"*************************************************");
         }
 
-        override public async Task GenerateOuput(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
+        override public async Task<Result> GenerateOuput(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
-            if (context.Workflow.MLModel is null || string.IsNullOrEmpty(context.MetricsSerialized)) return;
+            if (context.Workflow.MLModel is null || string.IsNullOrEmpty(context.MetricsSerialized)) return Result.Success();
 
             await _operatorService.UpdateModelMetrics(context.Workflow, context.Task.Value, context.MetricsSerialized, cancellationToken);
-            root.Data.Parameters = new Dictionary<string, object>();
-            root.Data.Parameters.Add("ModelMetricsId", context.Workflow.MLModel.ModelMetrics.Id);
+            root.Data.Parameters = new Dictionary<string, object>
+            {
+                { "ModelMetricsId", context.Workflow.MLModel.ModelMetrics.Id }
+            };
+
+            return Result.Success();
         }
     }
 }

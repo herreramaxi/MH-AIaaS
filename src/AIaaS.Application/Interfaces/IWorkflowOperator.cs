@@ -13,6 +13,6 @@ namespace AIaaS.WebAPI.Interfaces
         Task<Result> Run(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken);
         Result Validate(WorkflowContext context, WorkflowNodeDto root);
         void PropagateDatasetColumns(WorkflowContext context, WorkflowNodeDto root);
-        Task GenerateOuput(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken);
+        Task<Result> GenerateOuput(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken);
     }
 }

@@ -69,12 +69,7 @@ namespace AIaaS.Application.Features.Workflows.Commands
                 _nodeProcessor.NodeFinishProcessingEvent += (node, result) => _nodeProcessor_NodeFinishProcessingEvent(node, result, cancellationToken);
 
                 var result = await _nodeProcessor.Run(request.WorkflowDto, context, cancellationToken);
-
-                if (!result.IsSuccess)
-                {
-                    return result;
-                }
-
+                          
                 workflow.UpdateData(result.Value.Root);
                 await _workflowRepository.UpdateAsync(workflow, cancellationToken);
                 var mapped = _mapper.Map<Workflow, WorkflowDto>(workflow);
@@ -97,9 +92,9 @@ namespace AIaaS.Application.Features.Workflows.Commands
         private WorkflowNodeRunHistory? _workflowNodeRunHistory;
         private async Task _nodeProcessor_NodeStartProcessingEvent(Application.Common.Models.Dtos.WorkflowNodeDto? node, int? workflowRunHistoryId, CancellationToken cancellationToken)
         {
-            if (workflowRunHistoryId is null || node is null) return;
+            if (workflowRunHistoryId is null || node is null || node.Data.NodeGuid is null) return;
 
-            _workflowNodeRunHistory = WorkflowNodeRunHistory.Create(workflowRunHistoryId, node.Id, node.Type);
+            _workflowNodeRunHistory = WorkflowNodeRunHistory.Create(workflowRunHistoryId, node.Data.NodeGuid.Value, node.Type);
             await _workflowNodeRunHistoryRepository.AddAsync(_workflowNodeRunHistory, cancellationToken);
             await _publisher.Publish(new WorkflowNodeRunHistoryChangeNotification(_workflowNodeRunHistory), cancellationToken);
         }

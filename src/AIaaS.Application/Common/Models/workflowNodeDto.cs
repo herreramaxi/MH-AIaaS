@@ -10,27 +10,20 @@ namespace AIaaS.Application.Common.Models.Dtos
 
         [JsonIgnore]
         public WorkflowNodeDto? Parent { get;  set; }
-
         public void SetAsFailed(string errorMessage)
-        {
-            if (this.Data is null) return;
-
+        {           
             this.Data.StatusDetail = errorMessage;
             this.Data.Status = Domain.Enums.WorkflowRunStatus.Failed;
         }
 
         public void SetAsSuccess()
         {
-            if (this.Data is null) return;
-
             this.Data.StatusDetail = null;
             this.Data.Status = Domain.Enums.WorkflowRunStatus.Finished;
         }
 
         public void SetAsRunning()
         {
-            if (this.Data is null) return;
-
             this.Data.StatusDetail = null;
             this.Data.Status = Domain.Enums.WorkflowRunStatus.Running;
         }
@@ -63,16 +56,14 @@ namespace AIaaS.Application.Common.Models.Dtos
 
         public OperatorConfigurationDto? GetOperatorConfig(string parameterName)
         {
-            if (this.Data?.Config is null || !this.Data.Config.Any()) return null;
+            if (this.Data.Config is null || !this.Data.Config.Any()) return null;
 
             return this.Data.Config.FirstOrDefault(x => x.Name.Equals(parameterName, StringComparison.InvariantCultureIgnoreCase));
         }
 
         public void SetDatasetColumns(IList<string>? datasetColumns)
         {
-            if (this.Data is null) return;
-
             this.Data.DatasetColumns = datasetColumns;
-        }
+        }       
     }
 }

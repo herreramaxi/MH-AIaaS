@@ -6,7 +6,7 @@ namespace AIaaS.Application.Common.Models
     {
         public int Id { get; set; }
         public int WorkflowRunHistoryId { get; set; }
-        public string NodeId { get; set; }
+        public Guid NodeGuid { get; set; }
         public string NodeType { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }

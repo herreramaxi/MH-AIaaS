@@ -4,6 +4,7 @@ namespace AIaaS.Application.Common.Models.Dtos
 {
     public class OperatorDataDto
     {
+        public Guid? NodeGuid { get; set; }
         public string Name { get; set; }
         public IList<OperatorConfigurationDto>? Config { get; set; }
         public WorkflowRunStatus? Status { get; set; }

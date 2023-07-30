@@ -8,7 +8,7 @@ namespace AIaaS.Domain.Entities
     {
         public int WorkflowRunHistoryId { get; set; }
         public WorkflowRunHistory WorkflowRunHistory { get; set; }
-        public string NodeId { get; set; }
+        public Guid NodeGuid { get; set; }
         public string NodeType { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
@@ -16,11 +16,11 @@ namespace AIaaS.Domain.Entities
         public string? StatusDetail { get; set; }
         public double? TotalMilliseconds { get; set; }
 
-        public static WorkflowNodeRunHistory Create(int? workflowRunHistoryId,string nodeId, string nodeType) {
+        public static WorkflowNodeRunHistory Create(int? workflowRunHistoryId,Guid nodeGuid, string nodeType) {
             return new WorkflowNodeRunHistory()
             {
                 WorkflowRunHistoryId = workflowRunHistoryId??0,
-                NodeId = nodeId,
+                NodeGuid = nodeGuid,
                 NodeType = nodeType,
                 Status = WorkflowRunStatus.Running,
                 StartDate = DateTime.UtcNow

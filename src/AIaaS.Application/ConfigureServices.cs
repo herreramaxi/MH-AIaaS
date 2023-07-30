@@ -36,6 +36,7 @@ public static class ConfigureServices
         services.AddScoped<IPredictionBuilderDirector, PredictionBuilderDirector>();
         services.AddScoped<IDataViewService, DataViewService>();
         services.AddScoped<IWorkflowRunHistoryContext, WorkflowRunHistoryContext>();
+        services.AddScoped<IWorkflowTemplateService, WorkflowTemplateService>();
         
         var workflowOperatorTypes = typeof(IWebApiMarker).Assembly
             .GetTypes()

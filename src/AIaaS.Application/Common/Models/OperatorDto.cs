@@ -4,7 +4,7 @@
     {
         public string Name { get; set; }
         public string Type { get; set; }
-        public OperatorDataDto? Data { get; set; }
+        public OperatorDataDto Data { get; set; } = new OperatorDataDto();
         public int Order { get;  set; }
     }
 }

@@ -34,7 +34,7 @@ namespace AIaaS.Application.Services
                 return Result.Error("Not able to process workflow");
             }
 
-            var nodes = workflowGraphDto.Root.ToList(true);
+            var nodes = workflowGraphDto.Root.ToList(doubleLinked: true, generateGuidIfNotExist: true);
 
             if (!nodes.Any())
             {
@@ -48,8 +48,6 @@ namespace AIaaS.Application.Services
                 var result = await ProcessNode(node, context, cancellationToken);
 
                 await OnNodeFinishProcessing(node, _workflowRunHistoryContext.WorkflowRunHistory?.Id, result);
-
-                if (!result.IsSuccess) return result;
             }
 
             workflowDto.UpdateSerializedRootFromGraph(workflowGraphDto);
@@ -111,7 +109,7 @@ namespace AIaaS.Application.Services
                     return runResult;
                 }
 
-                await workflowOperator.GenerateOuput(context, node, cancellationToken);
+                var generateOutputresult = await workflowOperator.GenerateOuput(context, node, cancellationToken);
 
                 return Result.Success();
             }

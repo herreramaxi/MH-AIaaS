@@ -23,4 +23,11 @@
 	<ItemGroup>
 		<ProjectReference Include="..\AIaaS.Domain\AIaaS.Domain.csproj" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="Common\WorkflowTemplates\WorkflowSampleTemplate.json">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+	
 </Project>

@@ -2,8 +2,10 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.S3.Transfer;
+using Ardalis.Result;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace AIaaS.Infrastructure.AWS
 {
@@ -17,15 +19,15 @@ namespace AIaaS.Infrastructure.AWS
         {
             _s3Client = s3Client;
             _logger = logger;
-            _bucketName = configuration["AWS_BUCKET_NAME"];            
+            _bucketName = configuration["AWS_BUCKET_NAME"];
         }
 
-        public string GetS3ResourceUrl(string? key)
+        public string? GetS3ResourceUrl(string? key)
         {
             return !string.IsNullOrEmpty(key) ? $"https://{_bucketName}.s3.eu-west-1.amazonaws.com/{key}" : key;
         }
 
-        public async Task<bool> UploadFileAsync(Stream fileStream, string key, bool makePublic = false)
+        public async Task<Result> UploadFileAsync(Stream fileStream, string key, bool makePublic = false)
         {
             try
             {
@@ -37,17 +39,20 @@ namespace AIaaS.Infrastructure.AWS
                     await _s3Client.MakeObjectPublicAsync(_bucketName, key, true);
                 }
 
-                return true;
+                return Result.Success();
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error when trying to upload file '{key}' to S3");
-                return false;
+                var errorMessage = $"Error when trying to upload file '{key}' to S3";
+                _logger.LogError(exception, errorMessage);
+                return Result.Error(errorMessage);
             }
         }
 
-        public async Task<Stream?> DownloadFileAsync(string key)
+        public async Task<Result<Stream>> DownloadFileAsync(string key)
         {
+            if (string.IsNullOrEmpty(key)) return Result.Error("S3 key is required");
+
             try
             {
                 var request = new GetObjectRequest
@@ -57,18 +62,23 @@ namespace AIaaS.Infrastructure.AWS
                 };
 
                 var response = await _s3Client.GetObjectAsync(request);
-                var responseStream = response.ResponseStream;
-                return responseStream;
+
+                return response.HttpStatusCode == HttpStatusCode.OK ?
+                    Result.Success(response.ResponseStream) :
+                    Result.Error($"Not able to download file from S3, Status Code: {response.HttpStatusCode}");
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error when trying to download file '{key}' from S3.");
-                return null;
+                var errorMessage = $"Error when trying to download file '{key}' from S3.";
+                _logger.LogError(exception, errorMessage);
+                return Result.Error(errorMessage);
             }
         }
 
-        public async Task<bool> DeleteFileAsync(string key)
+        public async Task<Result> DeleteFileAsync(string key)
         {
+            if (string.IsNullOrEmpty(key)) return Result.Error("S3 key is required");
+
             try
             {
                 var request = new DeleteObjectRequest
@@ -78,12 +88,15 @@ namespace AIaaS.Infrastructure.AWS
                 };
 
                 var response = await _s3Client.DeleteObjectAsync(request);
-                return response.HttpStatusCode == System.Net.HttpStatusCode.NoContent;
+                return response.HttpStatusCode == HttpStatusCode.NoContent ?
+                       Result.Success() :
+                        Result.Error($"Error when trying to delete file '{key}' from S3, Status Code: {response.HttpStatusCode}");
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error when trying to delete file '{key}' from S3.");
-                return false;
+                var errorMessage = $"Error when trying to delete file '{key}' from S3.";
+                _logger.LogError(exception, errorMessage);
+                return Result.Error(errorMessage);
             }
         }
     }

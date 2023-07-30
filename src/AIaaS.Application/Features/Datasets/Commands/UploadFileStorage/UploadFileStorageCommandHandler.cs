@@ -44,13 +44,13 @@ namespace AIaaS.Application.Features.Datasets.Commands.UploadDataset
                 {
                     FileName = file.FileName,
                     Size = file.Length,
-                    S3Key = file.FileName.GenerateS3Key()
+                    S3Key = $"fileStorage_{dataset.Id}_{file.FileName}".GenerateS3Key()
                 };
 
-                var uploadedToS3 = await _s3Service.UploadFileAsync(reader, dataset.FileStorage.S3Key, true);
-                if (!uploadedToS3)
+                var result = await _s3Service.UploadFileAsync(reader, dataset.FileStorage.S3Key, true);
+                if (!result.IsSuccess)
                 {
-                    return Result.Error("Error when trying to upload the file to S3");
+                    return Result.Error($"Error when trying to upload the file to S3. Detail: {result.Errors.FirstOrDefault()}");
                 }
 
                 var createDataViewResult = await CreateDataViewFileAsync(filePath, dataset, file);
@@ -102,7 +102,6 @@ namespace AIaaS.Application.Features.Datasets.Commands.UploadDataset
                     .Where(x => x.Equals("Label", StringComparison.InvariantCultureIgnoreCase))
                   .FirstOrDefault() ?? columnNames.Last();
 
-
                 var dataView = mlContext.Data.LoadFromTextFile(filePath, options: options);
                 var fileName = Path.GetFileNameWithoutExtension(file.FileName);
                 var dataViewFileName = $"{fileName}.idv";
@@ -113,13 +112,13 @@ namespace AIaaS.Application.Features.Datasets.Commands.UploadDataset
                 {
                     Name = dataViewFileName,
                     Size = stream.Length,
-                    S3Key = dataViewFileName.GenerateS3Key()
+                    S3Key = $"dataViewFile_{dataset.Id}_{dataViewFileName}".GenerateS3Key()
                 };
 
-                var uploadedToS3 = await _s3Service.UploadFileAsync(stream, dataview.S3Key, true);
-                if (!uploadedToS3)
+                var result = await _s3Service.UploadFileAsync(stream, dataview.S3Key, true);
+                if (!result.IsSuccess)
                 {
-                    return Result.Error("Not able to upload dataview file to S3");
+                    return Result.Error($"Not able to upload dataview file to S3. Detail: {result.Errors.FirstOrDefault()}");
                 }
 
                 return Result.Success(dataview);

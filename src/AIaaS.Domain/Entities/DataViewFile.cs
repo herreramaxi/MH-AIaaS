@@ -1,8 +1,9 @@
 ﻿using AIaaS.Domain.Common;
+using AIaaS.Domain.Interfaces;
 
 namespace AIaaS.Domain.Entities
 {
-    public class DataViewFile: AuditableEntity
+    public class DataViewFile: AuditableEntity, IDataViewFile
     {
         public int DatasetId { get; set; }
         public Dataset Dataset { get; set; } = null!;

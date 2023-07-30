@@ -25,7 +25,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 
         public override Result Validate(WorkflowContext mlContext, WorkflowNodeDto root)
         {
-            if (root.Data?.DatasetColumns is null || !root.Data.DatasetColumns.Any())
+            if (root.Data.DatasetColumns is null || !root.Data.DatasetColumns.Any())
             {
               return Result.Error("No selected columns detected on pipeline, please select columns on dataset operator");
             }

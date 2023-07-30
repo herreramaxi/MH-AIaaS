@@ -366,21 +366,20 @@ namespace AIaaS.Infrastructure.Data.Migrations
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<byte[]>("Data")
-                        .IsRequired()
-                        .HasColumnType("varbinary(max)");
-
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("NodeId")
+                    b.Property<Guid>("NodeGuid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("NodeType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("NodeType")
+                    b.Property<string>("S3Key")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -421,9 +420,8 @@ namespace AIaaS.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("NodeId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<Guid>("NodeGuid")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("NodeType")
                         .IsRequired()

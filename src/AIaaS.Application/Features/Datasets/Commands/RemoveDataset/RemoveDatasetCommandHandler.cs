@@ -30,19 +30,19 @@ namespace AIaaS.Application.Features.Datasets.Commands.RemoveDataset
 
             if (dataset.DataViewFile is not null)
             {
-                var deleted = await _s3Service.DeleteFileAsync(dataset.DataViewFile.S3Key);
-                if (!deleted)
+                var result = await _s3Service.DeleteFileAsync(dataset.DataViewFile.S3Key);
+                if (!result.IsSuccess)
                 {
-                    _logger.LogWarning("Not able to delete dataview file from S3");
+                    _logger.LogWarning($"Not able to delete dataview file from S3. Detail: {result.Errors.FirstOrDefault()}");
                 }
             }
 
             if (dataset.FileStorage is not null)
             {
-                var deleted = await _s3Service.DeleteFileAsync(dataset.FileStorage.S3Key);
-                if (!deleted)
+                var result = await _s3Service.DeleteFileAsync(dataset.FileStorage.S3Key);
+                if (!result.IsSuccess)
                 {
-                    _logger.LogWarning("Not able to delete file storage from S3");
+                    _logger.LogWarning($"Not able to delete fileStorage from S3. Detail: {result.Errors.FirstOrDefault()}");
                 }
             }
 

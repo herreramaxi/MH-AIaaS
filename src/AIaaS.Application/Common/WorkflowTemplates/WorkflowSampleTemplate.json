@@ -1,0 +1,173 @@
+{
+  "root": {
+    "id": "s1688426979850",
+    "type": "Dataset",
+    "data": {     
+      "name": "Dataset",
+      "config": [
+        {
+          "name": "Dataset",
+          "description": "A dataset is a data source or input file for training a machine learning model",
+          "type": "list",
+          "value": null,
+          "default": null
+        },
+        {
+          "name": "SelectedColumns",
+          "description": "Selected columns to be included on model training",
+          "type": "list",
+          "value": [],
+          "default": null
+        }
+      ],
+      "status": null,
+      "statusDetail": null,
+      "parameters": null,
+      "datasetColumns": [],
+      "color": "#00B894",
+      "icon": "dataset"
+    },
+    "children": [
+      {
+        "id": "s1690589682314",
+        "type": "Clean",
+        "data": {          
+          "name": "Clean Data",
+          "config": [
+            {
+              "name": "Cleaning mode",
+              "description": "Cleaning mode to be applied",
+              "type": "list",
+              "value": null,
+              "default": null
+            },
+            {
+              "name": "SelectedColumns",
+              "description": "Columns to be cleaned",
+              "type": "list",
+              "value": [],
+              "default": null
+            }
+          ],
+          "status": null,
+          "statusDetail": null,
+          "parameters": {},
+          "datasetColumns": [],
+          "color": "#e17055",
+          "icon": "cleaning_services"
+        },
+        "children": [
+          {
+            "id": "s1688426992139",
+            "type": "Normalize",
+            "data": {              
+              "name": "Normalize",
+              "config": [
+                {
+                  "name": "Normalization mode",
+                  "description": "Normalization mode to be applied",
+                  "type": "list",
+                  "value": null,
+                  "default": null
+                },
+                {
+                  "name": "SelectedColumns",
+                  "description": "Columns to be normalized",
+                  "type": "list",
+                  "value": [],
+                  "default": null
+                }
+              ],
+              "status": null,
+              "statusDetail": null,
+              "parameters": {},
+              "datasetColumns": [],
+              "color": "#e17055",
+              "icon": "calculate"
+            },
+            "children": [
+              {
+                "id": "s1688426995752",
+                "type": "Split",
+                "data": {                 
+                  "name": "Split Data",
+                  "config": [
+                    {
+                      "name": "Test Fraction",
+                      "description": "The fraction of data to go into the test set",
+                      "type": "text",
+                      "value": 0.2,
+                      "default": "0.2"
+                    }
+                  ],
+                  "status": null,
+                  "statusDetail": null,
+                  "parameters": {},
+                  "datasetColumns": [],
+                  "color": "#e84393",
+                  "icon": "call_split"
+                },
+                "children": [
+                  {
+                    "id": "s1688426999643",
+                    "type": "Train",
+                    "data": {                      
+                      "name": "Train Model",
+                      "config": [
+                        {
+                          "name": "Label",
+                          "description": "The name of the label column",
+                          "type": "text",
+                          "value": null,
+                          "default": null
+                        },
+                        {
+                          "name": "Task",
+                          "description": "Type of prediction or inference being made",
+                          "type": "list",
+                          "value": null,
+                          "default": null
+                        },
+                        {
+                          "name": "Trainer",
+                          "description": "Trainer to perform the prediction or inference",
+                          "type": "list",
+                          "value": null,
+                          "default": null
+                        }
+                      ],
+                      "status": null,
+                      "statusDetail": null,
+                      "parameters": {},
+                      "datasetColumns": [],
+                      "color": "#e84393",
+                      "icon": "model_training"
+                    },
+                    "children": [
+                      {
+                        "id": "s1688427001950",
+                        "type": "Evaluate",
+                        "data": {                         
+                          "name": "Evaluate",
+                          "config": [],
+                          "status": null,
+                          "statusDetail": null,
+                          "parameters": {},
+                          "datasetColumns": [],
+                          "color": "#3498db",
+                          "icon": "analytics"
+                        },
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "connectors": []
+}
