@@ -43,9 +43,7 @@ namespace AIaaS.Application.Features.Workflows.Commands
                 {
                     return Result.NotFound("Workflow not found");
                 }
-
-                workflow.UpdateData(request.WorkflowDto.Root);
-
+                               
                 _nodeProcessor.NodeStartProcessingEvent += (node, workflowRunHistoryId) => _nodeProcessor_NodeStartProcessingEvent(node, workflowRunHistoryId, cancellationToken);
                 _nodeProcessor.NodeFinishProcessingEvent += (node, result) => _nodeProcessor_NodeFinishProcessingEvent(node, result, cancellationToken);
 
@@ -55,9 +53,9 @@ namespace AIaaS.Application.Features.Workflows.Commands
                 if (result.IsSuccess && !string.IsNullOrEmpty(result.Value?.Root))
                 {
                     workflow.UpdateData(result.Value.Root);
+                    await _workflowRepository.UpdateAsync(workflow, cancellationToken);
                 }
-
-                await _workflowRepository.UpdateAsync(workflow, cancellationToken);
+                  
                 var mapped = _mapper.Map<Workflow, WorkflowDto>(workflow);
 
                 return result.IsSuccess ? Result.Success(mapped) : result;
