@@ -120,7 +120,6 @@ builder.Services.AddSignalR();
 
 builder.Services.AddControllers();
 
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
@@ -144,14 +143,6 @@ builder.Services.AddAuthorization(o =>
         RequireRole("Administrator"));
 });
 
-
-//builder.Services.AddFluentValidationAutoValidation();
-//builder.Services.AddValidatorsFromAssemblyContaining<IWebApiMarker>();
-//builder.Services.AddAutoMapper(typeof(IWebApiMarker));
-//builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<IWebApiMarker>());
-//builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-
-//TODO: Check if disable on prod or not
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

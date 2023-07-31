@@ -106,7 +106,8 @@ namespace AIaaS.Application.Features.Workflows.Commands
             var change = new WorkflowNodeRunHistoryChangeNotification(_workflowNodeRunHistory.NodeGuid,
                 _workflowNodeRunHistory.NodeType,
                 _workflowNodeRunHistory.Status,
-                _workflowNodeRunHistory.StatusDetail);
+                _workflowNodeRunHistory.StatusDetail
+                );
 
             await _publisher.Publish(change, cancellationToken);
         }
@@ -122,10 +123,11 @@ namespace AIaaS.Application.Features.Workflows.Commands
             await _workflowNodeRunHistoryRepository.UpdateAsync(_workflowNodeRunHistory, cancellationToken);
 
             var change = new WorkflowNodeRunHistoryChangeNotification(_workflowNodeRunHistory.NodeGuid,
-          _workflowNodeRunHistory.NodeType,
-          _workflowNodeRunHistory.Status,
-          _workflowNodeRunHistory.StatusDetail,
-          node.Data.DatasetColumns);
+              _workflowNodeRunHistory.NodeType,
+              _workflowNodeRunHistory.Status,
+              _workflowNodeRunHistory.StatusDetail,
+              node.Data.DatasetColumns,
+              nodeParameters: node.Data.Parameters);
             await _publisher.Publish(change, cancellationToken);
         }
     }

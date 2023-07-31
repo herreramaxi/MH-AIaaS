@@ -1,5 +1,4 @@
-﻿using AIaaS.Domain.Entities;
-using AIaaS.Domain.Enums;
+﻿using AIaaS.Domain.Enums;
 using MediatR;
 
 namespace AIaaS.Application.Features.Workflows.Notifications
@@ -11,13 +10,15 @@ namespace AIaaS.Application.Features.Workflows.Notifications
             string nodeType,
             WorkflowRunStatus status,
             string? statusDetail,
-            IList<string>? datasetColumns = null)
+            IList<string>? datasetColumns = null,
+            IDictionary<string, object>? nodeParameters = null)
         {
             NodeGuid = nodeGuid;
             NodeType = nodeType;
             Status = status;
             StatusDetail = statusDetail;
             DatasetColumns = datasetColumns;
+            NodeParameters = nodeParameters;
         }
 
         public Guid NodeGuid { get; }
@@ -25,5 +26,6 @@ namespace AIaaS.Application.Features.Workflows.Notifications
         public WorkflowRunStatus Status { get; }
         public string? StatusDetail { get; }
         public IList<string>? DatasetColumns { get; }
+        public IDictionary<string, object>? NodeParameters { get; }
     }
 }

@@ -98,10 +98,11 @@ namespace AIaaS.Application.Features.Workflows.Commands
                processNodeResult.Errors.Any() ? processNodeResult.Errors.FirstOrDefault() : null);
 
             var change = new WorkflowNodeRunHistoryChangeNotification(_workflowNodeRunHistory.NodeGuid,
-          _workflowNodeRunHistory.NodeType,
-          _workflowNodeRunHistory.Status,
-          _workflowNodeRunHistory.StatusDetail,
-          node.Data.DatasetColumns);
+                _workflowNodeRunHistory.NodeType,
+                _workflowNodeRunHistory.Status,
+                _workflowNodeRunHistory.StatusDetail,
+                node.Data.DatasetColumns,
+                nodeParameters: node.Data.Parameters);
             await _publisher.Publish(change, cancellationToken);
         }
     }
