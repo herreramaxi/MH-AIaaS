@@ -6,6 +6,11 @@ then
   docker rm $(docker stop $CURRENT_INSTANCE)
 fi
 
+docker container prune -f
+docker image prune -a -f
+docker volume prune -f
+docker network prune -f
+
 docker pull $IMAGE_NAME:$IMAGE_TAG
 
 CONTAINER_EXISTS=$(docker ps -a | grep $CONTAINER_NAME)
