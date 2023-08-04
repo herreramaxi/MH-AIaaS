@@ -27,14 +27,14 @@ namespace AIaaS.Domain.Entities
                 {
                     Workflow = this
                 };
-
-                MLModel.SetData(stream);
             }
+
+            MLModel.SetData(stream);
         }
-          
+
         public void UpdateData(string? data)
         {
             this.Data = data;
-        }      
+        }
     }
 }
