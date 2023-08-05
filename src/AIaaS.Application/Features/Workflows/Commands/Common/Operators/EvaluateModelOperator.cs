@@ -106,6 +106,17 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
                 return Result.Error("Model not found, please add a 'Train Model' operator into the pipeline");
             }
 
+            if (string.IsNullOrEmpty(context.MetricsSerialized))
+            {
+                return Result.Error($"Metrics not generated for task: {context.Task}");
+            }
+
+            await _operatorService.UpdateModelMetrics(context.Workflow, context.Task.Value, context.MetricsSerialized, cancellationToken);
+            root.Data.Parameters = new Dictionary<string, object>
+            {
+                { "ModelMetricsId", context.Workflow.MLModel.ModelMetrics.Id }
+            };
+
             return Result.Success();
         }
 
@@ -124,14 +135,6 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 
         override public async Task<Result> GenerateOuput(WorkflowContext context, WorkflowNodeDto root, CancellationToken cancellationToken)
         {
-            if (context.Workflow.MLModel is null || string.IsNullOrEmpty(context.MetricsSerialized)) return Result.Success();
-
-            await _operatorService.UpdateModelMetrics(context.Workflow, context.Task.Value, context.MetricsSerialized, cancellationToken);
-            root.Data.Parameters = new Dictionary<string, object>
-            {
-                { "ModelMetricsId", context.Workflow.MLModel.ModelMetrics.Id }
-            };
-
             return Result.Success();
         }
     }

@@ -6,6 +6,7 @@ using AIaaS.WebAPI.ExtensionMethods;
 using AIaaS.WebAPI.Services;
 using Ardalis.Result;
 using Microsoft.ML;
+using Microsoft.ML.Trainers;
 
 namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
 {
@@ -19,7 +20,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
         private string? _task;
         private string? _trainer;
         private MetricTypeEnum? _taskAsEnum;
-
+        private const string FEATURE_COLUMN_NAME = "Features";
         public TrainModelOperator(IOperatorService operatorService) : base(operatorService)
         {
         }
@@ -94,7 +95,7 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             }
 
             var mlContext = context.MLContext;
-            var estimator = mlContext.Transforms.Concatenate("Features", features);
+            var estimator = mlContext.Transforms.Concatenate(FEATURE_COLUMN_NAME, features);
             context.EstimatorChain = context.EstimatorChain.AppendEstimator(estimator);
 
             var trainer = GetTrainer(mlContext, _task, _trainer);
@@ -123,23 +124,35 @@ namespace AIaaS.Application.Features.Workflows.Commands.Common.Operators
             {
                 switch (trainerName)
                 {
-                    case "SdcaRegression": return mlContext.Regression.Trainers.Sdca(labelColumnName: _labelColumn, featureColumnName: "Features");
-                    case "Ols": return mlContext.Regression.Trainers.Ols(labelColumnName: _labelColumn, featureColumnName: "Features");
-                    case "OnlineGradientDescent": return mlContext.Regression.Trainers.OnlineGradientDescent(labelColumnName: _labelColumn, featureColumnName: "Features");
+                    case "SdcaRegression": return mlContext.Regression.Trainers.Sdca(labelColumnName: _labelColumn, featureColumnName: FEATURE_COLUMN_NAME);
+                    case "Ols": {
+                            var options = new OlsTrainer.Options
+                            {
+                                LabelColumnName = nameof(_labelColumn),
+                                FeatureColumnName = FEATURE_COLUMN_NAME,
+                                // Larger values leads to smaller (closer to zero) model parameters.
+                                L2Regularization = 0.1f,
+                                // Whether to compute standard error and other statistics of model
+                                // parameters.
+                                CalculateStatistics = false
+                            };
+
+                            return mlContext.Regression.Trainers.Ols(labelColumnName: _labelColumn, featureColumnName: FEATURE_COLUMN_NAME); }
+                    case "OnlineGradientDescent": return mlContext.Regression.Trainers.OnlineGradientDescent(labelColumnName: _labelColumn, featureColumnName: FEATURE_COLUMN_NAME);
                     default:
-                        return mlContext.Regression.Trainers.Sdca(labelColumnName: _labelColumn, featureColumnName: "Features");
+                        return mlContext.Regression.Trainers.Sdca(labelColumnName: _labelColumn, featureColumnName: FEATURE_COLUMN_NAME);
                 }
             }
             else if (task == "BinaryClassification")
             {
                 switch (trainerName)
                 {
-                    case "SdcaLogisticRegression": return mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: _labelColumn, featureColumnName: "Features");
-                    case "LinearSvm": return mlContext.BinaryClassification.Trainers.LinearSvm(labelColumnName: _labelColumn, featureColumnName: "Features");
-                    case "AveragedPerceptron": return mlContext.BinaryClassification.Trainers.AveragedPerceptron(labelColumnName: _labelColumn, featureColumnName: "Features");
-                    case "FastTree": return mlContext.BinaryClassification.Trainers.FastTree(labelColumnName: _labelColumn, featureColumnName: "Features");
+                    case "SdcaLogisticRegression": return mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: _labelColumn, featureColumnName: FEATURE_COLUMN_NAME);
+                    case "LinearSvm": return mlContext.BinaryClassification.Trainers.LinearSvm(labelColumnName: _labelColumn, featureColumnName: FEATURE_COLUMN_NAME);
+                    case "AveragedPerceptron": return mlContext.BinaryClassification.Trainers.AveragedPerceptron(labelColumnName: _labelColumn, featureColumnName: FEATURE_COLUMN_NAME);
+                    case "FastTree": return mlContext.BinaryClassification.Trainers.FastTree(labelColumnName: _labelColumn, featureColumnName: FEATURE_COLUMN_NAME);
                     default:
-                        return mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: _labelColumn, featureColumnName: "Features");
+                        return mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: _labelColumn, featureColumnName: FEATURE_COLUMN_NAME);
                 }
 
             }

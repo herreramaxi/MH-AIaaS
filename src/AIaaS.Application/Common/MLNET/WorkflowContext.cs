@@ -21,5 +21,6 @@ namespace AIaaS.Application.Common.Models
         public bool RunWorkflow { get; internal set; }
         public MetricTypeEnum? Task { get; internal set; }
         public string MetricsSerialized { get; internal set; }
+        public bool GenerateIntermediateData { get; set; }
     }
 }

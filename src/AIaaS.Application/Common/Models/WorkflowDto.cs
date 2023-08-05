@@ -1,5 +1,6 @@
 ﻿using AIaaS.Application.Common.Models.Dtos;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AIaaS.Application.Common.Models
 {
@@ -11,6 +12,7 @@ namespace AIaaS.Application.Common.Models
         public bool? IsPublished { get; set; }
         public string? Root { get; set; }
         public bool? IsModelGenerated { get; set; }
+        public bool? GenerateIntermediateData { get; set; }
 
         public WorkflowGraphDto? GetDeserializedWorkflowGraph()
         {

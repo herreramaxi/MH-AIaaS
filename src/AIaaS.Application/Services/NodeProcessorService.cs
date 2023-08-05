@@ -89,7 +89,11 @@ namespace AIaaS.Application.Services
                     return runResult;
                 }
 
-                var generateOutputresult = await workflowOperator.GenerateOuput(context, node, cancellationToken);
+                if (context.GenerateIntermediateData)
+                {
+                    var generateOutputresult = await workflowOperator.GenerateOuput(context, node, cancellationToken);
+                    return generateOutputresult;
+                }
 
                 return Result.Success();
             }

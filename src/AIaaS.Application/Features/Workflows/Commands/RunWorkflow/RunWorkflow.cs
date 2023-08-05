@@ -18,9 +18,11 @@ namespace AIaaS.Application.Features.Workflows.Commands
         public RunWorkflowCommand(WorkflowDto workflowDto)
         {
             WorkflowDto = workflowDto;
+            GenerateIntermediateData = workflowDto.GenerateIntermediateData ?? false;
         }
 
         public WorkflowDto WorkflowDto { get; }
+        public bool GenerateIntermediateData { get; internal set; }
     }
 
     public class RunWorkflowHandler : IRequestHandler<RunWorkflowCommand, Result<WorkflowDto>>
@@ -62,7 +64,8 @@ namespace AIaaS.Application.Features.Workflows.Commands
                 {
                     MLContext = new MLContext(seed: 0),
                     Workflow = workflow,
-                    RunWorkflow = true
+                    RunWorkflow = true,
+                    GenerateIntermediateData = request.GenerateIntermediateData
                 };
 
                 _nodeProcessor.NodeStartProcessingEvent += (node, workflowRunHistoryId) => _nodeProcessor_NodeStartProcessingEvent(node, workflowRunHistoryId, cancellationToken);
